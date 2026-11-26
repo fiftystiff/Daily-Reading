@@ -1,0 +1,47 @@
+/*
+ * Theme: Graphite
+ */
+:root {
+  /* Colors */
+  --bg-main: #1e1f21;
+  --bg-book-nav: #26282b;
+  --bg-chapter-nav: #222426;
+  --bg-aside: #222426;
+  --bg-toggle-bar: #343639;
+  --bg-tile: #2f3134;
+  --bg-tile-hover: #3d3f42;
+  --bg-book-hover: #343639;
+  --bg-table-th: #313336;
+  --bg-table-hover: #242628;
+  --bg-row-selected: #393c40;
+  --border-main: #343537;
+  --border-book-nav: #3b3d40;
+  --border-toggle: #46484b;
+  --border-table: #343537;
+  --border-row-selected: #626870;
+  --text-main: #d9dadc;
+  --text-strong: #f0f0f1;
+  --text-muted: #a1a2a4;
+  --text-subtle: #8a8b8d;
+  --text-row-selected: #ececee;
+  --accent: #9aa4b0;
+  --accent-hover: #a9b2bc;
+  --accent-text: #121314;
+  --link-color: #a7afb9;
+  --link-underline: #626870;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #434447;
+  --scrollbar-thumb-hover: #5c5d60;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: "Segoe UI", system-ui, sans-serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Segoe UI Light", "Segoe UI", sans-serif;
+
+  /* Text layout overrides (optional) */
+  --line-height: 1.8;
+}

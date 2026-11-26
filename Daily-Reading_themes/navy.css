@@ -1,0 +1,44 @@
+/*
+ * Theme: Navy Slate
+ */
+:root {
+  /* Colors */
+  --bg-main: #f7f9fc;
+  --bg-book-nav: #e3e8f0;
+  --bg-chapter-nav: #edf1f7;
+  --bg-aside: #edf1f7;
+  --bg-toggle-bar: #d5dde8;
+  --bg-tile: #dfe6f0;
+  --bg-tile-hover: #cbd5e3;
+  --bg-book-hover: #d5dde8;
+  --bg-table-th: #dce3ed;
+  --bg-table-hover: #e8eef5;
+  --bg-row-selected: #cfe0f5;
+  --border-main: #d0d8e3;
+  --border-book-nav: #c5cfde;
+  --border-toggle: #bcc7d6;
+  --border-table: #d0d8e3;
+  --border-row-selected: #8cb0d9;
+  --text-main: #1e242b;
+  --text-strong: #0b0f14;
+  --text-muted: #4f5b69;
+  --text-subtle: #647180;
+  --text-row-selected: #0f2338;
+  --accent: #2b547e;
+  --accent-hover: #1e3d5c;
+  --accent-text: #ffffff;
+  --link-color: #234567;
+  --link-underline: #7a9bbd;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c3cddb;
+  --scrollbar-thumb-hover: #9eadc1;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Constantia, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Constantia, Georgia, serif;
+}

@@ -1,0 +1,44 @@
+/*
+ * Theme: OLED Pitch Black
+ */
+:root {
+  /* Colors */
+  --bg-main: #000000;
+  --bg-book-nav: #0a0a0c;
+  --bg-chapter-nav: #101013;
+  --bg-aside: #0a0a0c;
+  --bg-toggle-bar: #16161a;
+  --bg-tile: #1a1a1f;
+  --bg-tile-hover: #282830;
+  --bg-book-hover: #18181c;
+  --bg-table-th: #16161a;
+  --bg-table-hover: #121215;
+  --bg-row-selected: #292118;
+  --border-main: #222228;
+  --border-book-nav: #1c1c21;
+  --border-toggle: #26262e;
+  --border-table: #222228;
+  --border-row-selected: #8a643b;
+  --text-main: #dcdad5;
+  --text-strong: #ffffff;
+  --text-muted: #99968f;
+  --text-subtle: #85827b;
+  --text-row-selected: #fff8ed;
+  --accent: #d49b54;
+  --accent-hover: #e6ae67;
+  --accent-text: #000000;
+  --link-color: #e3b374;
+  --link-underline: #7a5a32;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #26262c;
+  --scrollbar-thumb-hover: #3c3c44;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Georgia, "Times New Roman", serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+}

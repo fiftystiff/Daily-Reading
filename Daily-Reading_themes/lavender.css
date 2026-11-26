@@ -1,0 +1,44 @@
+/*
+ * Theme: Lavender Mist
+ */
+:root {
+  /* Colors */
+  --bg-main: #f8f7fd;
+  --bg-book-nav: #e8e5f5;
+  --bg-chapter-nav: #efedf9;
+  --bg-aside: #efedf9;
+  --bg-toggle-bar: #d8d5e6;
+  --bg-tile: #dedbec;
+  --bg-tile-hover: #cfccdd;
+  --bg-book-hover: #d8d5e6;
+  --bg-table-th: #dcd9ea;
+  --bg-table-hover: #eceaf7;
+  --bg-row-selected: #dcd8f3;
+  --border-main: #dfdee6;
+  --border-book-nav: #d1cedf;
+  --border-toggle: #c5c2d3;
+  --border-table: #dfdee6;
+  --border-row-selected: #aaa1e3;
+  --text-main: #25233a;
+  --text-strong: #0f0e17;
+  --text-muted: #646374;
+  --text-subtle: #7e7c8c;
+  --text-row-selected: #12121d;
+  --accent: #6a5acd;
+  --accent-hover: #5548a4;
+  --accent-text: #ffffff;
+  --link-color: #5c4fb0;
+  --link-underline: #aaa1e3;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c9c6d7;
+  --scrollbar-thumb-hover: #aeabbd;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Constantia, Georgia, serif;
+  --font-ui: Corbel, "Segoe UI", sans-serif;
+  --font-verse-num: Corbel, "Segoe UI", sans-serif;
+  --font-heading: Constantia, Georgia, serif;
+}

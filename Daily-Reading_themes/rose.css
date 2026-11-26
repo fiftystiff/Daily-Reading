@@ -1,0 +1,44 @@
+/*
+ * Theme: Rose Quartz
+ */
+:root {
+  /* Colors */
+  --bg-main: #fdf7f8;
+  --bg-book-nav: #f3e4e8;
+  --bg-chapter-nav: #f8edef;
+  --bg-aside: #f8edef;
+  --bg-toggle-bar: #e3d4d8;
+  --bg-tile: #e9dade;
+  --bg-tile-hover: #d9cbcf;
+  --bg-book-hover: #e3d4d8;
+  --bg-table-th: #e7d8dc;
+  --bg-table-hover: #f6e9ec;
+  --bg-row-selected: #eed4dc;
+  --border-main: #e4dddf;
+  --border-book-nav: #dbcdd1;
+  --border-toggle: #d0c1c5;
+  --border-table: #e4dddf;
+  --border-row-selected: #d396aa;
+  --text-main: #2e2226;
+  --text-strong: #120e0f;
+  --text-muted: #6c6265;
+  --text-subtle: #857b7e;
+  --text-row-selected: #171113;
+  --accent: #b0476a;
+  --accent-hover: #8d3955;
+  --accent-text: #ffffff;
+  --link-color: #96405c;
+  --link-underline: #d396aa;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #d3c5c9;
+  --scrollbar-thumb-hover: #b8aaae;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: "Sitka Text", Georgia, serif;
+  --font-ui: Corbel, "Segoe UI", sans-serif;
+  --font-verse-num: Corbel, "Segoe UI", sans-serif;
+  --font-heading: "Sitka Text", Georgia, serif;
+}

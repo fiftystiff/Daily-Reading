@@ -1,0 +1,44 @@
+/*
+ * Theme: Campfire Ember
+ */
+:root {
+  /* Colors */
+  --bg-main: #1f1b16;
+  --bg-book-nav: #28221b;
+  --bg-chapter-nav: #241f19;
+  --bg-aside: #241f19;
+  --bg-toggle-bar: #383127;
+  --bg-tile: #322b23;
+  --bg-tile-hover: #413a2f;
+  --bg-book-hover: #383127;
+  --bg-table-th: #342d24;
+  --bg-table-hover: #26201a;
+  --bg-row-selected: #493420;
+  --border-main: #373229;
+  --border-book-nav: #3f382d;
+  --border-toggle: #4b4336;
+  --border-table: #373229;
+  --border-row-selected: #895a30;
+  --text-main: #ebdbb2;
+  --text-strong: #f7f1e0;
+  --text-muted: #aea183;
+  --text-subtle: #958a70;
+  --text-row-selected: #f5edd8;
+  --accent: #e08e45;
+  --accent-hover: #e59f61;
+  --accent-text: #13100d;
+  --link-color: #e29d5b;
+  --link-underline: #895a30;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #474033;
+  --scrollbar-thumb-hover: #625a48;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  --font-ui: Candara, "Segoe UI", sans-serif;
+  --font-verse-num: Candara, "Segoe UI", sans-serif;
+  --font-heading: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+}

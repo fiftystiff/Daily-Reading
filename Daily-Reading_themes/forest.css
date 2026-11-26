@@ -1,0 +1,44 @@
+/*
+ * Theme: Sage Forest
+ */
+:root {
+  /* Colors */
+  --bg-main: #f5f8f6;
+  --bg-book-nav: #e2ebe5;
+  --bg-chapter-nav: #ebf2ed;
+  --bg-aside: #ebf2ed;
+  --bg-toggle-bar: #d4e0d8;
+  --bg-tile: #dde8e1;
+  --bg-tile-hover: #c9d9cf;
+  --bg-book-hover: #d4e0d8;
+  --bg-table-th: #dae5de;
+  --bg-table-hover: #e6efe9;
+  --bg-row-selected: #cde3d6;
+  --border-main: #cdd9d1;
+  --border-book-nav: #c1cfc6;
+  --border-toggle: #b8c7bd;
+  --border-table: #cdd9d1;
+  --border-row-selected: #86b398;
+  --text-main: #1d2621;
+  --text-strong: #0c120e;
+  --text-muted: #4b5c52;
+  --text-subtle: #5f7066;
+  --text-row-selected: #10261a;
+  --accent: #2e6b4e;
+  --accent-hover: #21503a;
+  --accent-text: #ffffff;
+  --link-color: #25573f;
+  --link-underline: #7aa891;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #bccbc1;
+  --scrollbar-thumb-hover: #97ab9e;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: "Sitka Text", Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Sitka Text", Georgia, serif;
+}

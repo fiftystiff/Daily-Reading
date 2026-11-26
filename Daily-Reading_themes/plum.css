@@ -1,0 +1,44 @@
+/*
+ * Theme: Royal Plum
+ */
+:root {
+  /* Colors */
+  --bg-main: #f9f7fb;
+  --bg-book-nav: #eae4f0;
+  --bg-chapter-nav: #f2edf7;
+  --bg-aside: #f2edf7;
+  --bg-toggle-bar: #dcd3e6;
+  --bg-tile: #e5dced;
+  --bg-tile-hover: #d3c5e0;
+  --bg-book-hover: #dcd3e6;
+  --bg-table-th: #e2d9eb;
+  --bg-table-hover: #ede7f5;
+  --bg-row-selected: #dfd1ed;
+  --border-main: #d5cbe0;
+  --border-book-nav: #c9bdd6;
+  --border-toggle: #bfb1cf;
+  --border-table: #d5cbe0;
+  --border-row-selected: #9a7fb8;
+  --text-main: #231d29;
+  --text-strong: #110c14;
+  --text-muted: #544761;
+  --text-subtle: #685975;
+  --text-row-selected: #241236;
+  --accent: #5b377d;
+  --accent-hover: #442761;
+  --accent-text: #ffffff;
+  --link-color: #4d2d6b;
+  --link-underline: #9b7eb8;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #cbbfd9;
+  --scrollbar-thumb-hover: #a594b9;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: "Book Antiqua", "Palatino Linotype", serif;
+  --font-ui: Corbel, "Segoe UI", sans-serif;
+  --font-verse-num: Corbel, "Segoe UI", sans-serif;
+  --font-heading: "Book Antiqua", "Palatino Linotype", serif;
+}

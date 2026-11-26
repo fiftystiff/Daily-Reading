@@ -1,0 +1,44 @@
+/*
+ * Theme: Midnight Blue
+ */
+:root {
+  /* Colors */
+  --bg-main: #11161d;
+  --bg-book-nav: #161d26;
+  --bg-chapter-nav: #1b232e;
+  --bg-aside: #161d26;
+  --bg-toggle-bar: #212b38;
+  --bg-tile: #24303f;
+  --bg-tile-hover: #304054;
+  --bg-book-hover: #222d3b;
+  --bg-table-th: #212b38;
+  --bg-table-hover: #1e2733;
+  --bg-row-selected: #23384f;
+  --border-main: #283445;
+  --border-book-nav: #242f3d;
+  --border-toggle: #2d3b4d;
+  --border-table: #283445;
+  --border-row-selected: #4a76a8;
+  --text-main: #dce3ec;
+  --text-strong: #ffffff;
+  --text-muted: #98a6b8;
+  --text-subtle: #8896a8;
+  --text-row-selected: #f0f6fc;
+  --accent: #5c9ce6;
+  --accent-hover: #75aef0;
+  --accent-text: #0d131a;
+  --link-color: #7eb5f5;
+  --link-underline: #466d99;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2c3a4c;
+  --scrollbar-thumb-hover: #415570;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Cambria, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Cambria, Georgia, serif;
+}

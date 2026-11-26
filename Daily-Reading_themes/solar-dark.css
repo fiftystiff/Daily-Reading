@@ -1,0 +1,44 @@
+/*
+ * Theme: Solar Night
+ */
+:root {
+  /* Colors */
+  --bg-main: #002b36;
+  --bg-book-nav: #073642;
+  --bg-chapter-nav: #04313d;
+  --bg-aside: #04313d;
+  --bg-toggle-bar: #16424d;
+  --bg-tile: #103e49;
+  --bg-tile-hover: #204a54;
+  --bg-book-hover: #16424d;
+  --bg-table-th: #123f4b;
+  --bg-table-hover: #05333f;
+  --bg-row-selected: #2e4533;
+  --border-main: #183f48;
+  --border-book-nav: #1e4853;
+  --border-toggle: #29515c;
+  --border-table: #183f48;
+  --border-row-selected: #746c2f;
+  --text-main: #c5ced0;
+  --text-strong: #e8ebec;
+  --text-muted: #8a9da2;
+  --text-subtle: #728a8f;
+  --text-row-selected: #e2e6e8;
+  --accent: #d3a12a;
+  --accent-hover: #daaf4a;
+  --accent-text: #001a20;
+  --link-color: #d0aa4b;
+  --link-underline: #746c2f;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #254e59;
+  --scrollbar-thumb-hover: #40646d;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Georgia, "Times New Roman", serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+}

@@ -1,0 +1,44 @@
+/*
+ * Theme: Spring Meadow
+ */
+:root {
+  /* Colors */
+  --bg-main: #f8faf2;
+  --bg-book-nav: #e8eed8;
+  --bg-chapter-nav: #eff3e4;
+  --bg-aside: #eff3e4;
+  --bg-toggle-bar: #d8dec9;
+  --bg-tile: #dee4cf;
+  --bg-tile-hover: #cfd5c0;
+  --bg-book-hover: #d8dec9;
+  --bg-table-th: #dce2cd;
+  --bg-table-hover: #ecf1de;
+  --bg-row-selected: #d9e1c8;
+  --border-main: #dfe1d8;
+  --border-book-nav: #d1d7c1;
+  --border-toggle: #c5cbb6;
+  --border-table: #dfe1d8;
+  --border-row-selected: #a4b67e;
+  --text-main: #252b1c;
+  --text-strong: #0f110b;
+  --text-muted: #64695c;
+  --text-subtle: #7e8276;
+  --text-row-selected: #12160e;
+  --accent: #5f7f1f;
+  --accent-hover: #4c6619;
+  --accent-text: #ffffff;
+  --link-color: #536e1e;
+  --link-underline: #a4b67e;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c9cfba;
+  --scrollbar-thumb-hover: #aeb4a0;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: "Book Antiqua", "Palatino Linotype", serif;
+  --font-ui: Calibri, "Segoe UI", sans-serif;
+  --font-verse-num: Calibri, "Segoe UI", sans-serif;
+  --font-heading: "Book Antiqua", "Palatino Linotype", serif;
+}

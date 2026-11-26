@@ -1,0 +1,44 @@
+/*
+ * Theme: Solar Cream
+ */
+:root {
+  /* Colors */
+  --bg-main: #fdf6e3;
+  --bg-book-nav: #eee8d5;
+  --bg-chapter-nav: #f5eedb;
+  --bg-aside: #f5eedb;
+  --bg-toggle-bar: #e0dbca;
+  --bg-tile: #e5e0ce;
+  --bg-tile-hover: #d7d3c4;
+  --bg-book-hover: #e0dbca;
+  --bg-table-th: #e3dfcd;
+  --bg-table-hover: #f2ecd8;
+  --bg-row-selected: #efe0b6;
+  --border-main: #e6e1d1;
+  --border-book-nav: #d9d5c5;
+  --border-toggle: #ceccbd;
+  --border-table: #e6e1d1;
+  --border-row-selected: #d5ba66;
+  --text-main: #3c4a50;
+  --text-strong: #181e20;
+  --text-muted: #767e7c;
+  --text-subtle: #8d928e;
+  --text-row-selected: #1e2528;
+  --accent: #b58900;
+  --accent-hover: #916e00;
+  --accent-text: #ffffff;
+  --link-color: #9d7c10;
+  --link-underline: #d5ba66;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #d2cfc0;
+  --scrollbar-thumb-hover: #b9b9ad;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Georgia, "Times New Roman", serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+}

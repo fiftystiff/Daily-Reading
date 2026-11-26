@@ -1,0 +1,47 @@
+/*
+ * Theme: Crimson Night
+ */
+:root {
+  /* Colors */
+  --bg-main: #1a1214;
+  --bg-book-nav: #22171a;
+  --bg-chapter-nav: #1e1517;
+  --bg-aside: #1e1517;
+  --bg-toggle-bar: #32272a;
+  --bg-tile: #2c2124;
+  --bg-tile-hover: #3c3134;
+  --bg-book-hover: #32272a;
+  --bg-table-th: #2e2326;
+  --bg-table-hover: #201618;
+  --bg-row-selected: #46232a;
+  --border-main: #332a2c;
+  --border-book-nav: #3a2f32;
+  --border-toggle: #463a3d;
+  --border-table: #332a2c;
+  --border-row-selected: #873d4c;
+  --text-main: #eadcdf;
+  --text-strong: #f7f1f2;
+  --text-muted: #ac9fa2;
+  --text-subtle: #93878a;
+  --text-row-selected: #f4eeef;
+  --accent: #e0607a;
+  --accent-hover: #e5788e;
+  --accent-text: #100b0c;
+  --link-color: #e2798e;
+  --link-underline: #873d4c;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #42373a;
+  --scrollbar-thumb-hover: #5e5255;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Garamond, "Palatino Linotype", serif;
+  --font-ui: Corbel, "Segoe UI", sans-serif;
+  --font-verse-num: Corbel, "Segoe UI", sans-serif;
+  --font-heading: Garamond, "Palatino Linotype", serif;
+
+  /* Text layout overrides (optional) */
+  --text-size: 19px;
+}

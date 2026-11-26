@@ -1,0 +1,44 @@
+/*
+ * Theme: Espresso Roast
+ */
+:root {
+  /* Colors */
+  --bg-main: #1c1714;
+  --bg-book-nav: #241d19;
+  --bg-chapter-nav: #29211d;
+  --bg-aside: #241d19;
+  --bg-toggle-bar: #332924;
+  --bg-tile: #382d27;
+  --bg-tile-hover: #4a3c34;
+  --bg-book-hover: #332924;
+  --bg-table-th: #332924;
+  --bg-table-hover: #2e2520;
+  --bg-row-selected: #473629;
+  --border-main: #3b3029;
+  --border-book-nav: #332923;
+  --border-toggle: #453830;
+  --border-table: #3b3029;
+  --border-row-selected: #9e7552;
+  --text-main: #ebe3dc;
+  --text-strong: #ffffff;
+  --text-muted: #b3a498;
+  --text-subtle: #9e8f82;
+  --text-row-selected: #fcf7f2;
+  --accent: #d49a6a;
+  --accent-hover: #e3ad81;
+  --accent-text: #1c140e;
+  --link-color: #e6b48a;
+  --link-underline: #8f6847;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #45382f;
+  --scrollbar-thumb-hover: #5e4d43;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  --font-ui: Candara, "Segoe UI", sans-serif;
+  --font-verse-num: Candara, "Segoe UI", sans-serif;
+  --font-heading: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+}

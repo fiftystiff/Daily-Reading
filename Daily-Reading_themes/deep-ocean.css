@@ -1,0 +1,44 @@
+/*
+ * Theme: Deep Ocean
+ */
+:root {
+  /* Colors */
+  --bg-main: #0f1a1f;
+  --bg-book-nav: #132228;
+  --bg-chapter-nav: #111e24;
+  --bg-aside: #111e24;
+  --bg-toggle-bar: #233238;
+  --bg-tile: #1d2c32;
+  --bg-tile-hover: #2c3b41;
+  --bg-book-hover: #233238;
+  --bg-table-th: #1f2e34;
+  --bg-table-hover: #122026;
+  --bg-row-selected: #1a3d43;
+  --border-main: #273237;
+  --border-book-nav: #2a3a3f;
+  --border-toggle: #36454b;
+  --border-table: #273237;
+  --border-row-selected: #29717a;
+  --text-main: #d5e6ea;
+  --text-strong: #eef5f7;
+  --text-muted: #9aa9ad;
+  --text-subtle: #829095;
+  --text-row-selected: #eaf2f4;
+  --accent: #3fb8c4;
+  --accent-hover: #5cc3cd;
+  --accent-text: #091013;
+  --link-color: #5dc1cc;
+  --link-underline: #29717a;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #324147;
+  --scrollbar-thumb-hover: #4d5d62;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Cambria, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Cambria, Georgia, serif;
+}

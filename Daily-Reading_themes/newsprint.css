@@ -1,0 +1,47 @@
+/*
+ * Theme: Newsprint
+ */
+:root {
+  /* Colors */
+  --bg-main: #fafafa;
+  --bg-book-nav: #e9e9e9;
+  --bg-chapter-nav: #f1f1f1;
+  --bg-aside: #f1f1f1;
+  --bg-toggle-bar: #d8d8d8;
+  --bg-tile: #dfdfdf;
+  --bg-tile-hover: #cecece;
+  --bg-book-hover: #d8d8d8;
+  --bg-table-th: #dddddd;
+  --bg-table-hover: #ededed;
+  --bg-row-selected: #d6d6d6;
+  --border-main: #dfdfdf;
+  --border-book-nav: #d0d0d0;
+  --border-toggle: #c4c4c4;
+  --border-table: #dfdfdf;
+  --border-row-selected: #969696;
+  --text-main: #1a1a1a;
+  --text-strong: #0a0a0a;
+  --text-muted: #5d5d5d;
+  --text-subtle: #787878;
+  --text-row-selected: #0d0d0d;
+  --accent: #444444;
+  --accent-hover: #363636;
+  --accent-text: #ffffff;
+  --link-color: #3c3c3c;
+  --link-underline: #969696;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c8c8c8;
+  --scrollbar-thumb-hover: #ababab;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: "Times New Roman", Times, serif;
+  --font-ui: Verdana, Geneva, sans-serif;
+  --font-verse-num: Verdana, Geneva, sans-serif;
+  --font-heading: "Times New Roman", Times, serif;
+
+  /* Text layout overrides (optional) */
+  --text-size: 19px;
+}

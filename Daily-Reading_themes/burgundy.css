@@ -1,0 +1,47 @@
+/*
+ * Theme: Burgundy & Cream
+ */
+:root {
+  /* Colors */
+  --bg-main: #fbf8f8;
+  --bg-book-nav: #efe5e6;
+  --bg-chapter-nav: #f5eeee;
+  --bg-aside: #f5eeee;
+  --bg-toggle-bar: #e3d4d6;
+  --bg-tile: #ebdcdc;
+  --bg-tile-hover: #dbc5c7;
+  --bg-book-hover: #e3d4d6;
+  --bg-table-th: #e8dadb;
+  --bg-table-hover: #f2e8e9;
+  --bg-row-selected: #ebd1d4;
+  --border-main: #decdd0;
+  --border-book-nav: #d4bfc2;
+  --border-toggle: #cbb2b6;
+  --border-table: #decdd0;
+  --border-row-selected: #b57b82;
+  --text-main: #291d1f;
+  --text-strong: #140b0c;
+  --text-muted: #5e474a;
+  --text-subtle: #735a5e;
+  --text-row-selected: #331115;
+  --accent: #7c2d36;
+  --accent-hover: #5e2027;
+  --accent-text: #ffffff;
+  --link-color: #6b242c;
+  --link-underline: #b3747b;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #d6c0c3;
+  --scrollbar-thumb-hover: #b39398;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Garamond, "Palatino Linotype", serif;
+  --font-ui: Corbel, "Segoe UI", sans-serif;
+  --font-verse-num: Corbel, "Segoe UI", sans-serif;
+  --font-heading: Garamond, "Palatino Linotype", serif;
+
+  /* Text layout overrides (optional) */
+  --text-size: 19px;
+}

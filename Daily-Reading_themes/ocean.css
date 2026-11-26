@@ -1,0 +1,44 @@
+/*
+ * Theme: Ocean Breeze
+ */
+:root {
+  /* Colors */
+  --bg-main: #f5fafa;
+  --bg-book-nav: #e0eeef;
+  --bg-chapter-nav: #e9f3f4;
+  --bg-aside: #e9f3f4;
+  --bg-toggle-bar: #d0dedf;
+  --bg-tile: #d6e4e5;
+  --bg-tile-hover: #c6d5d6;
+  --bg-book-hover: #d0dedf;
+  --bg-table-th: #d4e2e3;
+  --bg-table-hover: #e5f1f2;
+  --bg-row-selected: #cae0e2;
+  --border-main: #dbe1e1;
+  --border-book-nav: #c8d6d8;
+  --border-toggle: #bdcbcc;
+  --border-table: #dbe1e1;
+  --border-row-selected: #7fb4b7;
+  --text-main: #1b2a2c;
+  --text-strong: #0b1112;
+  --text-muted: #5c686a;
+  --text-subtle: #778183;
+  --text-row-selected: #0e1516;
+  --accent: #1f7a80;
+  --accent-hover: #196266;
+  --accent-text: #ffffff;
+  --link-color: #1e6a6f;
+  --link-underline: #7fb4b7;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c0cfd0;
+  --scrollbar-thumb-hover: #a5b3b4;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Cambria, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Cambria, Georgia, serif;
+}

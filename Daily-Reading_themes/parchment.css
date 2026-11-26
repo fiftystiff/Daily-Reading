@@ -1,0 +1,57 @@
+/*
+ * Theme: Parchment
+ */
+:root {
+  /* Colors */
+  --bg-main: #f6f1ea;
+  --bg-book-nav: #cac1af;
+  --bg-chapter-nav: #dcd5c7;
+  --bg-aside: #cac1af;
+  --bg-toggle-bar: #dfd7c8;
+  --bg-tile: #c7bfad;
+  --bg-tile-hover: #d6cbb7;
+  --bg-book-hover: #dfd7c8;
+  --bg-table-th: #e6e0d4;
+  --bg-table-hover: #f1ece1;
+  --bg-row-selected: #e6d5bc;
+  --border-main: #b8b6b2;
+  --border-book-nav: #d5cec0;
+  --border-toggle: #cfc6b6;
+  --border-table: #dfd9ce;
+  --border-row-selected: #c5ab87;
+  --text-main: #000000;
+  --text-strong: #000000;
+  --text-muted: #555555;
+  --text-subtle: #666666;
+  --text-row-selected: #1a120b;
+  --accent: #5c4f42;
+  --accent-hover: #734820;
+  --accent-text: #ffffff;
+  --link-color: #5c3a18;
+  --link-underline: #a88864;
+  --book-title-color: #5c4f42;
+  --chapter-num-color: #5c4f42;
+  --verse-num-color: #5c4f42;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #8d8b86;
+  --scrollbar-thumb-hover: #b9aa90;
+  --color-scheme: light;
+
+  /* Fonts */
+  --font-text: Garamond, "Palatino Linotype", serif;
+  --font-ui: "Times New Roman", Times, serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Times New Roman", Times, serif;
+
+  /* Text layout */
+  --text-size: 18px;
+  --line-height: 1;
+  --verse-spacing: 1.5em;
+  --chapter-spacing: 3em;
+  --text-width: 80ch;
+  --verse-num-scale: 0.68;
+  --verse-num-x: -18px;
+  --verse-num-y: 0px;
+}

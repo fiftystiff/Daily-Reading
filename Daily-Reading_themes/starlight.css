@@ -1,0 +1,44 @@
+/*
+ * Theme: Starlight Gold
+ */
+:root {
+  /* Colors */
+  --bg-main: #121522;
+  --bg-book-nav: #191d2e;
+  --bg-chapter-nav: #161929;
+  --bg-aside: #161929;
+  --bg-toggle-bar: #292d3c;
+  --bg-tile: #232737;
+  --bg-tile-hover: #333744;
+  --bg-book-hover: #292d3c;
+  --bg-table-th: #252938;
+  --bg-table-hover: #171b2b;
+  --bg-row-selected: #40392e;
+  --border-main: #2b2e38;
+  --border-book-nav: #313543;
+  --border-toggle: #3d404d;
+  --border-table: #2b2e38;
+  --border-row-selected: #846f3f;
+  --text-main: #e3e2da;
+  --text-strong: #f4f3f0;
+  --text-muted: #a4a4a3;
+  --text-subtle: #8b8c8d;
+  --text-row-selected: #f1f0ec;
+  --accent: #e2b857;
+  --accent-hover: #e6c370;
+  --accent-text: #0b0d14;
+  --link-color: #e2c071;
+  --link-underline: #846f3f;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #393d4a;
+  --scrollbar-thumb-hover: #565862;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: "Book Antiqua", "Palatino Linotype", serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Book Antiqua", "Palatino Linotype", serif;
+}

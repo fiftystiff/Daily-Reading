@@ -1,0 +1,44 @@
+/*
+ * Theme: Dark Emerald
+ */
+:root {
+  /* Colors */
+  --bg-main: #111916;
+  --bg-book-nav: #16211d;
+  --bg-chapter-nav: #1a2622;
+  --bg-aside: #16211d;
+  --bg-toggle-bar: #202e29;
+  --bg-tile: #24342e;
+  --bg-tile-hover: #30453d;
+  --bg-book-hover: #21302b;
+  --bg-table-th: #202e29;
+  --bg-table-hover: #1d2925;
+  --bg-row-selected: #233d33;
+  --border-main: #273832;
+  --border-book-nav: #22302b;
+  --border-toggle: #2d4039;
+  --border-table: #273832;
+  --border-row-selected: #4c8c73;
+  --text-main: #dce6e2;
+  --text-strong: #ffffff;
+  --text-muted: #98aba3;
+  --text-subtle: #859990;
+  --text-row-selected: #f0faf6;
+  --accent: #52b788;
+  --accent-hover: #6bc99d;
+  --accent-text: #0b1410;
+  --link-color: #74c69d;
+  --link-underline: #407d60;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2b3e37;
+  --scrollbar-thumb-hover: #42594f;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Constantia, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Constantia, Georgia, serif;
+}

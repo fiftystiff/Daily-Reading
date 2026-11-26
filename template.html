@@ -1,0 +1,4056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Daily-Reading</title>
+<style>
+  /* ==========================================================================
+     DEFAULT THEME (built in)
+     Used as-is when "Default" is selected, and as the fallback when the
+     Daily-Reading_themes folder is missing or a theme file fails to load. A theme file from there
+     is loaded after this block and overrides any of these values.
+     User settings override any theme value (inline custom properties on <body>).
+     ========================================================================== */
+  :root {
+    /* Colors */
+    --bg-main: #faf8f5;
+    --bg-book-nav: #eae4d8;
+    --bg-chapter-nav: #f3efe6;
+    --bg-aside: #f4f1ea;
+    --bg-toggle-bar: #dfd7c8;
+    --bg-tile: #e9e3d5;
+    --bg-tile-hover: #d6cbb7;
+    --bg-book-hover: #dfd7c8;
+    --bg-table-th: #e6e0d4;
+    --bg-table-hover: #f1ece1;
+    --bg-row-selected: #e6d5bc;
+    --border-main: #dcd6cb;
+    --border-book-nav: #d5cec0;
+    --border-toggle: #cfc6b6;
+    --border-table: #dfd9ce;
+    --border-row-selected: #c5ab87;
+    --text-main: #222222;
+    --text-strong: #000000;
+    --text-muted: #555555;
+    --text-subtle: #666666;
+    --text-row-selected: #1a120b;
+    --accent: #8b5a2b;
+    --accent-hover: #734820;
+    --accent-text: #ffffff;
+    --link-color: #5c3a18;
+    --link-underline: #a88864;
+
+    /* Scrollbars & native controls */
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: #d3c8b4;
+    --scrollbar-thumb-hover: #b9aa90;
+    --color-scheme: light;
+
+    /* Fonts */
+    --font-text: Georgia, "Times New Roman", serif;
+    --font-ui: "Segoe UI", system-ui, sans-serif;
+    --font-verse-num: "Segoe UI", system-ui, sans-serif;
+    --font-heading: Georgia, "Times New Roman", serif;   /* book name + chapter number */
+
+    /* Text layout */
+    --text-size: 18px;
+    --line-height: 1.72;
+    --verse-spacing: 0.35em;
+    --chapter-spacing: 3em;
+    --text-width: 68ch;
+    --verse-num-scale: 0.68;
+    --verse-num-x: 0px;
+    --verse-num-y: 0px;
+
+    /* Interface scale (book list, chapter grid, schedule, settings); not the reading text */
+    --ui-scale: 1;
+  }
+
+  /* --verse-num-color, --book-title-color and --chapter-num-color are optional: a theme
+     file or a setting may set them; otherwise they fall back to the accent / strong text
+     colors where they are used. */
+
+  /* ==========================================================================
+     LAYOUT
+     ========================================================================== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    display: grid;
+    grid-template-columns: calc(170px * var(--ui-scale)) calc(165px * var(--ui-scale)) minmax(0, 1fr) calc(390px * var(--ui-scale));
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    color-scheme: var(--color-scheme);
+  }
+
+  #book-nav-pane, #chapter-nav, aside {
+    overflow-y: auto;
+    height: 100%;
+    min-height: 0;
+  }
+  /* UI scale: these are laid out at normal size and magnified as a whole */
+  #book-nav-pane, #chapter-nav, aside, .settings-btn, .settings-panel { zoom: var(--ui-scale); }
+
+  /* Themed scrollbars */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 3px solid transparent;
+    border-radius: 8px;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner { background: transparent; }
+
+  nav, button, select, .book-title, .settings-panel {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  main, aside, .verse, .verse-text, table {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  /* Text cursor only over the text itself; scrollbars and margins keep the normal arrow. */
+  .verse, td { cursor: text; }
+
+  /* 1. Left Column: Translation + Old / New Toggles + Books */
+  #book-nav-pane {
+    background: var(--bg-book-nav);
+    border-right: 1px solid var(--border-book-nav);
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .nav-toggles {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-toggle-bar);
+    border-bottom: 1px solid var(--border-toggle);
+  }
+  .segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .segmented.translation-toggle {
+    grid-template-columns: repeat(var(--translation-count, 4), 1fr);
+    border-bottom: 1px solid var(--border-toggle);
+  }
+  .translation-toggle .toggle-btn { padding-left: 2px; padding-right: 2px; }
+  /* Online translation without a key: still shown, clicking it opens the key settings */
+  .translation-toggle .toggle-btn.unavailable { opacity: 0.45; }
+  .toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 4px;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .toggle-btn:hover { color: var(--text-strong); }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+  .translation-toggle .toggle-btn { font-size: 0.76rem; letter-spacing: 0.03em; }
+  /* XML bibles from the Daily-Reading_bibles folder (only when there are some), above the buttons */
+  .local-bible-row {
+    padding: 5px 6px;
+    border-bottom: 1px solid var(--border-toggle);
+  }
+  .local-bible-row[hidden] { display: none; }
+  #local-bible-select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-tile);
+    color: var(--text-muted);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.76rem;
+    outline: none;
+  }
+  #local-bible-select.active {
+    border-color: var(--accent);
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+  #local-bible-select option { color: var(--text-main); font-weight: normal; }
+  #book-list {
+    padding: 6px 0;
+    flex: 1;
+  }
+  .book-item {
+    display: block;
+    padding: 5px 12px;
+    color: var(--text-main);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  .book-item.hidden { display: none; }
+  .book-item:hover { background: var(--bg-book-hover); }
+  .book-item.active {
+    background: var(--bg-main);
+    font-weight: 700;
+    color: var(--text-strong);
+    border-left-color: var(--accent);
+  }
+
+  /* 2. Second Column: 5-Wide Chapter Grid */
+  #chapter-nav {
+    background: var(--bg-chapter-nav);
+    border-right: 1px solid var(--border-main);
+    padding: 10px 8px;
+  }
+  #chapter-nav-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-subtle);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .chapter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+  .chapter-item {
+    display: block;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 0.78rem;
+    color: var(--text-main);
+    text-decoration: none;
+    border-radius: 3px;
+    background: var(--bg-tile);
+  }
+  .chapter-item:hover { background: var(--bg-tile-hover); }
+  .chapter-item.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 700;
+  }
+
+  /* 3. Main Area: scrolling Bible text */
+  main {
+    position: relative;      /* offsetTop of chapters/verses is measured against main */
+    height: 100vh;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;      /* the top bar's full-width background extends past the sides */
+    overflow-anchor: none;   /* position is restored by script after reflow */
+    /* Bottom space lets even a short last chapter scroll up to the bar. */
+    padding: 0 60px calc(100vh - var(--bar-h));
+    font-family: var(--font-text);
+    font-size: var(--text-size);
+    line-height: var(--line-height);
+  }
+  .content-wrapper { max-width: var(--text-width); margin: 0 auto; }
+  /* Small capitals (the NASB and NIV print "LORD" and Old Testament quotations this way) */
+  .sc { font-variant: small-caps; }
+  /* A chapter showing only the verses a schedule asks for */
+  .verse-range-note {
+    padding: 0.2em 0 0.7em var(--gutter);
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    user-select: none;
+  }
+  .link-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--link-color);
+    text-decoration: underline;
+    text-decoration-color: var(--link-underline);
+    cursor: pointer;
+  }
+  .link-btn:hover { color: var(--accent); }
+  /* An online chapter that hasn't arrived (or couldn't be loaded) */
+  .chapter-status {
+    min-height: 50vh;
+    padding: 1em 0 0 var(--gutter);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-subtle);
+  }
+  .chapter-status .status-error { color: var(--text-muted); }
+  .chapter-status .status-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  /* Shown where the text goes when an online translation has no API key yet */
+  .key-page {
+    max-width: 34em;
+    margin: calc(var(--bar-h) + 2.5em) auto 0;
+    font-family: var(--font-ui);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text-main);
+  }
+  .key-page-title {
+    font-family: var(--font-heading);
+    font-size: 1.5em;
+    color: var(--text-strong);
+    margin-bottom: 0.6em;
+  }
+  .key-page p { margin: 0 0 0.9em; }
+  .key-page-link {
+    display: inline-block;
+    margin-bottom: 0.4em;
+    color: var(--link-color);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--link-underline);
+    text-underline-offset: 3px;
+  }
+  .key-page-steps { color: var(--text-muted); font-size: 0.92em; }
+  .key-page-entry { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; margin: 1.4em 0 0.8em; }
+  .key-page-file { margin-bottom: 1.2em !important; }
+  .key-page code {
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 0.92em;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--bg-tile);
+    color: var(--text-strong);
+    white-space: nowrap;
+  }
+  .key-page-entry input {
+    min-width: 0;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-main);
+    color: var(--text-main);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font: inherit;
+  }
+  .key-page-entry .text-btn { font-size: 0.85rem; padding: 4px 16px; }
+  .key-page-entry .key-status { grid-column: 1 / -1; margin: 0; font-size: 0.85em; }
+  .copyright-note {
+    max-width: var(--text-width);
+    margin: 0 auto;
+    padding: 1.5em 0 0;
+    border-top: 1px solid var(--border-table);
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    color: var(--text-subtle);
+  }
+  .copyright-note[hidden] { display: none; }
+  main h1 { font-size: 1.8em; text-align: center; margin: 1em 0 0.3em; }
+  main h2 { font-size: 1.15em; text-align: center; color: var(--text-subtle); margin: 2em 0 1.4em; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* --------------------------------------------------------------------------
+     TOP BAR ("Book N") AND HEADINGS
+     The bar is a fixed row at the top of the reading pane with two cells: the book
+     name right-aligned in the left half, the chapter number left-aligned in the
+     right half. Book titles and chapter numbers in the text use the same row
+     layout, so each sits exactly where it appears in the bar. Text scrolls under
+     the bar; when a heading reaches the bar, the script puts its text in the bar.
+     -------------------------------------------------------------------------- */
+  main {
+    --bar-h: calc(var(--text-size) * 2.6);         /* bar / heading row height */
+    --title-gap: calc(var(--text-size) * 0.45);    /* space between name and number */
+  }
+  .heading-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--title-gap);
+    align-items: center;
+    height: var(--bar-h);
+    font-family: var(--font-heading);
+    font-size: 1.4em;
+    line-height: 1;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .heading-row > :first-child { justify-self: end; color: var(--book-title-color, var(--text-strong)); }
+  .heading-row > :last-child { justify-self: start; color: var(--chapter-num-color, var(--accent)); }
+
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin-bottom: calc(-1 * var(--bar-h));   /* the first title row starts under the bar */
+    pointer-events: none;
+  }
+  /* Measures the chapter gap in px for the script (the gap may be set in em). */
+  .spacing-probe { position: absolute; visibility: hidden; height: var(--chapter-spacing); width: 0; }
+  /* Same width as the text column (ch units measured in the text font, like .content-wrapper) */
+  .top-bar-inner { max-width: var(--text-width); margin: 0 auto; }
+  .top-bar::before {                          /* full-width background + bottom rule */
+    content: "";
+    position: absolute;
+    inset: 0 -100vmax;
+    z-index: -1;
+    background: var(--bg-main);
+    border-bottom: 2px solid var(--border-main);
+  }
+  .top-bar, .book-title, .chapter-head { user-select: none; -webkit-user-select: none; }
+
+  .chapter { --gutter: calc(var(--text-size) * 2.3); }
+  .book-section > .chapter:last-child::after { content: ""; display: block; height: 3em; }
+
+  /* Gap between chapters; the chapter number sits in the bottom bar-height of it, in the
+     right-hand cell, so it lines up with the number in the bar. */
+  .chapter-head {
+    height: var(--chapter-spacing);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .chapter-head .heading-row { flex: none; }
+  /* A section's first chapter shows its number in the book's title row instead ("Psalms 1"),
+     so the name and number reach the bar together; its own heading is just a small gap. */
+  .chapter-head.merged { height: 0.6em; }
+  .chapter-head.merged .heading-row { display: none; }
+
+  .verse {
+    position: relative;
+    padding-left: var(--gutter);
+    margin-bottom: var(--verse-spacing);
+  }
+  .verse-num {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--gutter) - 0.45rem);
+    text-align: right;
+    transform: translate(var(--verse-num-x), var(--verse-num-y));
+    font-family: var(--font-verse-num);
+    font-size: calc(var(--verse-num-scale) * 1em);
+    line-height: calc(var(--line-height) * var(--text-size));
+    font-weight: 600;
+    color: var(--verse-num-color, var(--accent));
+    opacity: 0.85;
+  }
+
+  /* Footnote markers (XML bibles, ESV, NASB, NIV): hidden unless Footnotes is on. The letter
+     is drawn by CSS, so it's never part of copied text. */
+  .fn { display: none; }
+  body.show-footnotes .fn {
+    display: inline;
+    padding: 0 0.12em;
+    font-family: var(--font-ui);
+    font-size: 0.62em;
+    font-weight: 700;
+    line-height: 0;
+    vertical-align: super;
+    color: var(--footnote-color, var(--accent));
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body.show-footnotes .fn::after { content: attr(data-label); }
+  /* A verse that's only a footnote ("not in the earliest manuscripts"): out of sight while
+     footnotes are hidden, but still in place (zero height) so positions stay right. */
+  body:not(.show-footnotes) .verse.note-only { height: 0; margin: 0; overflow: hidden; visibility: hidden; }
+  body.show-footnotes .fn:hover, .fn.open { text-decoration: underline; }
+  .fn-pop {
+    position: fixed;
+    z-index: 30;
+    max-width: min(26rem, calc(100vw - 24px));
+    padding: 8px 11px;
+    border: 1px solid var(--border-main);
+    border-radius: 6px;
+    background: var(--bg-main);
+    color: var(--text-main);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+  .fn-pop[hidden] { display: none; }
+  .fn-pop-label { font-weight: 700; color: var(--footnote-color, var(--accent)); margin-right: 0.4em; }
+
+  /* NASB historical-present marker: a small raised "+" before the verb */
+  .hist-present {
+    font-family: var(--font-verse-num);
+    font-size: 0.65em;
+    font-weight: 600;
+    vertical-align: super;
+    line-height: 0;
+    margin-right: 0.08em;
+    color: var(--text-subtle);
+    cursor: help;
+  }
+
+  /* Verse number style: inline superscript */
+  body.vn-inline .verse-num {
+    position: static;
+    display: inline-block;
+    width: auto;
+    line-height: 1;
+    vertical-align: super;
+  }
+  /* Verse number style: hidden */
+  body.vn-hidden .verse-num { display: none; }
+
+  /* 4. Right Column: Title -> Week Buttons -> Active Week Table */
+  aside {
+    background: var(--bg-aside);
+    border-left: 1px solid var(--border-main);
+    font-size: 0.82rem;
+    padding: 14px 16px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .aside-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-main);
+    padding-bottom: 6px;
+  }
+  .aside-header h1 {
+    font-size: 1rem;
+    color: var(--text-main);
+    flex: none;
+  }
+  .aside-header { gap: 10px; }
+  #schedule-select {
+    min-width: 0;
+    max-width: 65%;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-tile);
+    color: var(--text-main);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.78rem;
+  }
+  #schedule-select[hidden], .schedule-status[hidden], .week-picker-section[hidden] { display: none; }
+  .schedule-status {
+    margin: -4px 0 0;
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+  .schedule-status .warn { color: var(--accent); cursor: help; }
+  .schedule-status .error { color: var(--accent); }
+  .schedule-progress {
+    height: 4px;
+    margin-top: 4px;
+    border-radius: 2px;
+    background: var(--bg-tile);
+    overflow: hidden;
+  }
+  .schedule-progress > div { height: 100%; background: var(--accent); }
+  /* Checkboxes in custom schedules */
+  td.check-cell, th.check-cell { width: 1%; text-align: center; padding-left: 4px; padding-right: 4px; }
+  .schedule-check { margin: 0 4px 0 0; vertical-align: -2px; accent-color: var(--accent); cursor: pointer; }
+  td.check-cell .schedule-check { margin: 0; }
+  .reading-done .schedule-link { color: var(--text-subtle); text-decoration: line-through; border-bottom-color: transparent; }
+  tbody tr.row-done td { color: var(--text-subtle); }
+  tbody tr.row-done .schedule-link { color: var(--text-subtle); }
+  .week-btn.done { box-shadow: inset 0 -3px 0 var(--accent); }
+  .week-btn.done.active { box-shadow: none; }
+
+  .week-picker-section {
+    border-bottom: 1px solid var(--border-main);
+    padding-bottom: 10px;
+  }
+  .week-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+  }
+  .today-btn {
+    border: none;
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 3px 9px;
+    border-radius: 3px;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .today-btn:hover { background: var(--accent-hover); }
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 3px;
+  }
+  .week-btn {
+    border: none;
+    background: var(--bg-tile);
+    color: var(--text-main);
+    padding: 4px 0;
+    font: inherit;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .week-btn:hover { background: var(--bg-tile-hover); }
+  /* Sections with names instead of week numbers */
+  .week-grid.named { display: flex; flex-wrap: wrap; }
+  .week-grid.named .week-btn { padding: 4px 8px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .week-btn.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-weight: 700;
+  }
+
+  .week-block { display: none; }
+  .week-block.active { display: block; }
+  .week-block h2 {
+    font-size: 0.92rem;
+    color: var(--accent);
+    margin: 2px 0 6px;
+  }
+  .week-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .bulk-actions { display: inline-flex; gap: 10px; margin-left: 10px; font-size: 0.72rem; white-space: nowrap; }
+  .week-block-head .bulk-actions { margin-left: 0; }
+  .bulk-actions .link-btn.armed { color: var(--accent); font-weight: 700; text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; background: var(--bg-main); }
+  th, td {
+    padding: 5px 7px;
+    border: 1px solid var(--border-table);
+    text-align: left;
+  }
+  th {
+    background: var(--bg-table-th);
+    font-weight: 700;
+  }
+  tbody tr {
+    cursor: pointer;
+  }
+  tbody tr:hover td {
+    background: var(--bg-table-hover);
+  }
+  tbody tr.selected-row td {
+    background: var(--bg-row-selected);
+    font-weight: 600;
+    color: var(--text-row-selected);
+    border-top-color: var(--border-row-selected);
+    border-bottom-color: var(--border-row-selected);
+  }
+
+  .schedule-link {
+    color: var(--link-color);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--link-underline);
+  }
+  .schedule-link:hover {
+    color: var(--accent);
+    border-bottom-style: solid;
+  }
+
+  /* 5. Settings (bottom-right corner) */
+  .settings-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 14px;
+    z-index: 50;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-tile);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+  .settings-btn:hover, .settings-btn[aria-expanded="true"] {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+  .settings-btn svg { width: 20px; height: 20px; }
+
+  .settings-panel {
+    position: fixed;
+    right: 16px;
+    bottom: 60px;
+    z-index: 50;
+    width: 340px;
+    max-height: calc(100vh / var(--ui-scale) - 80px);   /* the panel is zoomed by the UI scale */
+    max-width: calc(100vw / var(--ui-scale) - 32px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg-aside);
+    color: var(--text-main);
+    border: 1px solid var(--border-toggle);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    font-size: 0.8rem;
+    padding: 6px 14px 12px;
+  }
+  .settings-panel[hidden] { display: none; }
+  .settings-panel h2 {
+    font-size: 0.95rem;
+    margin: 6px 0 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .settings-section {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-main);
+  }
+  .settings-section h3 {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-subtle);
+    margin-bottom: 6px;
+  }
+  .setting-row {
+    display: grid;
+    grid-template-columns: 96px 1fr 22px;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+  }
+  .setting-row label { color: var(--text-muted); }
+  .setting-row select {
+    width: 100%;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-tile);
+    color: var(--text-main);
+    padding: 3px 4px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.78rem;
+    outline: none;
+  }
+  .range-wrap { display: flex; align-items: center; gap: 8px; }
+  /* "More colors": collapsed by default, the heading toggles it */
+  details.settings-section > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  details.settings-section > summary::-webkit-details-marker { display: none; }
+  details.settings-section > summary h3 { display: inline; }
+  details.settings-section > summary h3::before {
+    content: "\25B8";
+    display: inline-block;
+    width: 1.1em;
+    transition: transform 0.15s;
+  }
+  details.settings-section[open] > summary h3::before { transform: rotate(90deg); }
+  details.settings-section > summary:hover h3 { color: var(--text-muted); }
+  details.settings-section[open] > summary { margin-bottom: 6px; }
+  .settings-note {
+    font-size: 0.72rem;
+    color: var(--text-subtle);
+    margin: 0 0 6px;
+    line-height: 1.35;
+  }
+  .color-wrap { display: flex; align-items: center; gap: 6px; }
+  .color-wrap .color-input { flex: 1; min-width: 0; }
+  .color-wrap .color-input.is-none { opacity: 0.35; }
+  .none-toggle {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .none-toggle input { margin: 0; accent-color: var(--accent); }
+  .color-input {
+    width: 100%;
+    height: 22px;
+    padding: 1px 2px;
+    border: 1px solid var(--border-toggle);
+    border-radius: 4px;
+    background: var(--bg-tile);
+    cursor: pointer;
+  }
+  .range-wrap input { flex: 1; min-width: 0; accent-color: var(--accent); }
+  .range-value {
+    width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+  .range-value.overridden { color: var(--accent); font-weight: 700; }
+  .reset-one {
+    border: none;
+    background: transparent;
+    color: var(--text-subtle);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 2px;
+    border-radius: 3px;
+  }
+  .reset-one:hover:not(:disabled) { color: var(--accent); background: var(--bg-tile); }
+  .reset-one:disabled { visibility: hidden; }
+  .settings-footer { margin-top: 12px; display: flex; justify-content: flex-end; }
+  .reset-section { margin-top: 14px; }
+  .reset-row { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin-bottom: 8px; }
+  .reset-row[hidden], .reset-status[hidden] { display: none; }
+  .reset-row .text-btn { white-space: nowrap; }
+  .reset-row .text-btn.armed { color: var(--accent); border-color: var(--accent); font-weight: 700; }
+  .reset-row .settings-note { margin: 2px 0 0; }
+  .reset-status.error { color: var(--accent); }
+  .text-btn {
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-tile);
+    color: var(--text-main);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.76rem;
+    cursor: pointer;
+  }
+  .text-btn:hover { background: var(--bg-tile-hover); }
+  .has-tip { cursor: help; }
+  .tip-icon { font-size: 1.15em; font-weight: 400; vertical-align: -0.05em; margin-left: 2px; }
+  .key-row { display: grid; grid-template-columns: 96px 1fr; gap: 4px 8px; align-items: center; margin-top: 6px; }
+  .key-row label { color: var(--text-muted); }
+  .key-row input {
+    min-width: 0;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-main);
+    color: var(--text-main);
+    padding: 3px 6px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.78rem;
+  }
+  .key-row .key-actions { grid-column: 2; display: flex; gap: 6px; }
+  .key-row .key-actions [hidden] { display: none; }
+  .key-status { grid-column: 2; font-size: 0.72rem; color: var(--text-subtle); line-height: 1.35; }
+  .key-status.error { color: var(--accent); }
+  .key-status:empty { display: none; }
+  .save-theme { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .save-theme > .text-btn { align-self: flex-start; }
+  .save-theme-form { display: flex; gap: 6px; }
+  .save-theme-form[hidden], .save-theme-status[hidden] { display: none; }
+  .save-theme-form input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--border-toggle);
+    background: var(--bg-main);
+    color: var(--text-main);
+    padding: 3px 6px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 0.78rem;
+  }
+  .save-theme-status { font-size: 0.74rem; color: var(--text-muted); line-height: 1.35; }
+  .close-btn { border: none; background: transparent; color: var(--text-subtle); font-size: 1.1rem; cursor: pointer; }
+  .close-btn:hover { color: var(--text-strong); }
+</style>
+<script>
+  // "Default" is built into this file; the rest are listed by build.py from the
+  // Daily-Reading_themes folder (and re-read from that folder by the desktop app).
+  const THEMES = [{ id: "default", name: "Default", builtIn: true }, .../*{{THEMES_JSON}}*/ []];
+  // Where theme files are loaded from. The desktop app passes its themes folder in the
+  // address as #themes=<file URL> (a ?query on a file address isn't found by WebView2);
+  // otherwise it's the folder next to this page.
+  const THEMES_BASE = (function () {
+    const fromApp = new URLSearchParams(location.hash.slice(1)).get("themes");
+    return fromApp && /^file:\/\/\//.test(fromApp) ? fromApp.replace(/\/?$/, "/") : "Daily-Reading_themes/";
+  })();
+  // Load the saved theme's stylesheet while the head is still parsing, so it's applied before
+  // first paint. If the file is missing (no Daily-Reading_themes folder), the built-in Default shows.
+  const THEME_ID_RE = /^[a-z0-9][a-z0-9-]{0,48}$/;
+  let initialTheme = "default";
+  let pendingTheme = null;   // saved theme that couldn't be loaded as a file (retried via the app)
+  // Saved settings. In the desktop app they're in Daily-Reading_settings.json in the app
+  // folder: app.py passes them in the address (#...&settings=<JSON>, or "new" when there's
+  // no file yet) and the page saves changes back through the app. In a plain browser,
+  // they're in the browser's storage.
+  const SETTING_KEYS = {
+    "daily-reading-theme": "theme", "daily-reading-translation": "translation",
+    "daily-reading-schedule": "schedule", "daily-reading-settings": "settings",
+  };
+  const settingsFile = (function () {
+    const raw = new URLSearchParams(location.hash.slice(1)).get("settings");
+    if (raw === null) return null;
+    if (raw !== "new") {
+      try { const d = JSON.parse(raw); if (d && typeof d === "object" && !Array.isArray(d)) return d; } catch { /* start afresh */ }
+    }
+    // No settings file yet: bring over what earlier versions kept in the browser's storage.
+    const d = { __unsaved: true };
+    for (const [key, name] of Object.entries(SETTING_KEYS)) {
+      let v = null;
+      try { v = localStorage.getItem(key); } catch { /* no storage */ }
+      if (v === null) continue;
+      if (name === "settings") { try { d.settings = JSON.parse(v); } catch { /* skip */ } } else d[name] = v;
+    }
+    return d;
+  })();
+  (function () {
+    let saved = null;
+    if (settingsFile) saved = typeof settingsFile.theme === "string" ? settingsFile.theme : null;
+    else try { saved = localStorage.getItem("daily-reading-theme") || localStorage.getItem("biblereading-theme"); } catch { /* no storage */ }
+    // Also try ids not in the built list: themes saved from the settings panel since the last build.
+    if (saved && saved !== "default" && THEME_ID_RE.test(saved)) {
+      initialTheme = saved;
+      if (!THEMES.some(t => t.id === saved)) THEMES.push({ id: saved, name: saved });
+      document.write(`<link rel="stylesheet" id="theme-css" data-theme="${saved}" href="${THEMES_BASE}${saved}.css" onerror="themeLoadFailed(this)">`);
+    }
+  })();
+  function themeLoadFailed(link) {
+    pendingTheme = link.dataset.theme;
+    link.remove();
+    initialTheme = "default";
+    const select = document.getElementById("theme-select");
+    if (select) select.value = "default";
+  }
+</script>
+</head>
+<body>
+
+  <nav id="book-nav-pane">
+    <div class="nav-toggles">
+      <div class="local-bible-row" id="local-bible-row" hidden>
+        <select id="local-bible-select" aria-label="Other translations"
+                title="Bibles from the Daily-Reading_bibles folder next to the app (XML files; see README.md for how to add your own)"></select>
+      </div>
+      <div id="translation-toggle" class="segmented translation-toggle" role="group" aria-label="Translation"></div>
+      <div class="segmented testament-toggle">
+        <button id="btn-ot" class="toggle-btn active" onclick="setTestament('OT')">Old</button>
+        <button id="btn-nt" class="toggle-btn" onclick="setTestament('NT')">New</button>
+      </div>
+    </div>
+    <div id="book-list"></div>
+  </nav>
+
+  <nav id="chapter-nav">
+    <div id="chapter-nav-title">Chapters</div>
+    <div id="chapter-grid" class="chapter-grid"></div>
+  </nav>
+
+  <main id="bible-main" tabindex="-1">
+    <div class="top-bar" id="top-bar">
+      <div class="spacing-probe" id="spacing-probe"></div>
+      <div class="top-bar-inner">
+        <div class="heading-row"><span id="bar-book"></span><span id="bar-chapter"></span></div>
+      </div>
+    </div>
+    <div class="content-wrapper" id="bible-content"></div>
+    <div class="fn-pop" id="fn-pop" role="tooltip" hidden></div>
+    <footer class="copyright-note" id="copyright-note" hidden></footer>
+  </main>
+
+  <aside id="schedule-aside">
+    <div class="aside-header">
+      <h1>Schedule</h1>
+      <!-- The built-in schedule plus every .md file in Daily-Reading_schedules -->
+      <select id="schedule-select" aria-label="Reading schedule" hidden></select>
+    </div>
+    <p id="schedule-status" class="schedule-status" role="status" hidden></p>
+    <div class="week-picker-section" id="week-picker-section">
+      <div class="week-picker-header">
+        <span id="week-picker-label">Week</span>
+        <button class="today-btn" id="today-btn" onclick="jumpToToday()">Today</button>
+      </div>
+      <div id="week-grid" class="week-grid"></div>
+    </div>
+    <div id="schedule-tables"></div>
+  </aside>
+
+  <button id="settings-btn" class="settings-btn" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="settings-panel">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+
+  <div id="settings-panel" class="settings-panel" hidden>
+    <h2>Settings <button class="close-btn" id="settings-close" title="Close" aria-label="Close settings">&times;</button></h2>
+    <div class="settings-section">
+      <h3>Appearance</h3>
+      <div class="setting-row">
+        <label for="theme-select">Theme</label>
+        <select id="theme-select" onchange="changeTheme(this.value)"></select>
+        <span></span>
+      </div>
+      <div class="save-theme">
+        <button class="text-btn" id="save-theme-btn" type="button">Save current look as theme&hellip;</button>
+        <form id="save-theme-form" class="save-theme-form" hidden>
+          <input id="save-theme-name" type="text" maxlength="40" placeholder="Theme name" autocomplete="off" aria-label="Theme name">
+          <button class="text-btn" type="submit">Save</button>
+          <button class="text-btn" type="button" id="save-theme-cancel">Cancel</button>
+        </form>
+        <p id="save-theme-status" class="save-theme-status" role="status" hidden></p>
+      </div>
+    </div>
+    <div class="settings-section" id="online-section">
+      <h3 class="has-tip" title="Keys can also go in a text file named Daily-Reading_keys.txt, in the same folder as Daily-Reading.exe, one per line:&#10;&#10;ESV = your ESV key&#10;API.Bible = your API.Bible key&#10;&#10;Keys in that file are used instead of the ones saved here.">API keys <span class="tip-icon" aria-hidden="true">ⓘ</span></h3>
+      <div class="key-row" data-kind="esv">
+        <label for="key-esv">ESV key</label>
+        <input id="key-esv" type="password" autocomplete="off" spellcheck="false">
+        <div class="key-actions">
+          <button class="text-btn" type="button" data-key-action="save">Save</button>
+          <button class="text-btn" type="button" data-key-action="remove" hidden>Remove</button>
+        </div>
+        <p class="key-status" role="status"></p>
+      </div>
+      <div class="key-row" data-kind="apibible">
+        <label for="key-apibible">NASB / NIV key</label>
+        <input id="key-apibible" type="password" autocomplete="off" spellcheck="false">
+        <div class="key-actions">
+          <button class="text-btn" type="button" data-key-action="save">Save</button>
+          <button class="text-btn" type="button" data-key-action="remove" hidden>Remove</button>
+        </div>
+        <p class="key-status" role="status"></p>
+      </div>
+    </div>
+    <div id="settings-dynamic"></div>
+    <div class="settings-footer">
+      <button class="text-btn" id="settings-reset-all">Reset to theme defaults</button>
+    </div>
+    <div class="settings-section reset-section">
+      <h3>Reset</h3>
+      <div class="reset-row">
+        <button class="text-btn" type="button" id="reset-everything" data-confirm="Reset everything? Click again">Reset all settings</button>
+        <p class="settings-note">Every setting back to its default: the look, theme, translation and schedule. Ticked boxes in schedules and your API keys stay.</p>
+      </div>
+      <div class="reset-row" id="clear-appdata-row">
+        <button class="text-btn" type="button" id="clear-appdata" data-confirm="Delete it? Click again">Delete app data</button>
+        <p class="settings-note">Deletes the Daily-Reading folder in AppData: API keys saved in the app (not ones in Daily-Reading_keys.txt) and anything else the app keeps there.</p>
+      </div>
+      <p class="settings-note reset-status" id="reset-status" role="status" hidden></p>
+    </div>
+  </div>
+
+  {{TRANSLATION_TEMPLATES}}
+
+<script>
+  const booksData = /*{{BOOKS_JSON}}*/ [];
+  const builtInScheduleText = /*{{SCHEDULE_MD}}*/ "";
+  const translationsData = /*{{TRANSLATIONS_JSON}}*/ [];
+
+  const bookList = document.getElementById("book-list");
+  const chapterGrid = document.getElementById("chapter-grid");
+  const chapterTitle = document.getElementById("chapter-nav-title");
+  const mainPane = document.getElementById("bible-main");
+  const bibleContent = document.getElementById("bible-content");
+  const weekGrid = document.getElementById("week-grid");
+  const themeSelect = document.getElementById("theme-select");
+
+  const STORAGE = {
+    theme: "daily-reading-theme",
+    translation: "daily-reading-translation",
+    settings: "daily-reading-settings",
+  };
+
+  function storageGet(key, fallback = null) {
+    if (settingsFile) {
+      const v = settingsFile[SETTING_KEYS[key] || key];
+      return v === undefined || v === null ? fallback : typeof v === "string" ? v : JSON.stringify(v);
+    }
+    try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch { return fallback; }
+  }
+  function storageSet(key, value) {
+    if (settingsFile) {
+      const name = SETTING_KEYS[key] || key;
+      if (name === "settings") { try { settingsFile.settings = JSON.parse(value); } catch { /* keep the last good one */ } }
+      else settingsFile[name] = value;
+      saveSettingsFileSoon();
+      return;
+    }
+    try { localStorage.setItem(key, value); } catch { /* storage unavailable */ }
+  }
+
+  // Changes are written to the settings file a moment after they stop (a slider being
+  // dragged writes once), and as soon as the app is ready if anything is waiting.
+  let settingsSaveTimer = null;
+  let settingsResetting = false;   // "Reset all settings": nothing may write the old ones back
+  function saveSettingsFileSoon() {
+    clearTimeout(settingsSaveTimer);
+    if (!settingsResetting) settingsSaveTimer = setTimeout(saveSettingsFile, 300);
+  }
+  async function saveSettingsFile() {
+    if (settingsResetting) return;
+    const api = window.pywebview && window.pywebview.api;
+    if (!settingsFile || !api) { if (settingsFile) settingsFile.__unsaved = true; return; }
+    const data = { ...settingsFile };
+    delete data.__unsaved;
+    try {
+      const res = await api.save_settings(data);
+      if (res && res.ok) delete settingsFile.__unsaved;
+    } catch { settingsFile.__unsaved = true; }
+  }
+  window.addEventListener("pywebviewready", () => { if (settingsFile && settingsFile.__unsaved) saveSettingsFile(); });
+
+  const bookById = new Map(booksData.map(b => [b.id, b]));
+  const chapterInfo = new Map();
+  booksData.forEach(b => b.chapters.forEach(c => chapterInfo.set(c.id, { book: b, num: c.num })));
+
+  let activeBookId = null;
+  let activeChapterId = null;
+  let currentTestament = "OT";
+  let currentTranslation = null;
+
+  // --- THEMES: one stylesheet per file in Daily-Reading_themes, swapped at runtime ---
+  // "Default" is built in. Other themes load as <themes folder>/<id>.css; if that file
+  // can't be reached, the desktop app supplies its text instead.
+
+  // The desktop app's Python API (pywebview), or null when running in a plain browser.
+  function appApi() {
+    return window.pywebview && window.pywebview.api ? window.pywebview.api : null;
+  }
+
+  function currentThemeId() {
+    const el = document.getElementById("theme-css");
+    return el ? el.dataset.theme : "default";
+  }
+
+  function rebuildThemeOptions() {
+    const selected = currentThemeId();
+    themeSelect.replaceChildren(new Option("Default", "default"));
+    THEMES.filter(t => !t.builtIn)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(t => themeSelect.add(new Option(t.name, t.id)));
+    themeSelect.value = selected;
+  }
+
+  function addThemeEntry(theme) {
+    const i = THEMES.findIndex(t => t.id === theme.id);
+    if (i >= 0) THEMES[i] = { ...THEMES[i], ...theme }; else THEMES.push(theme);
+  }
+
+  function installThemeElement(el, oldEl, onApplied) {
+    if (oldEl) oldEl.remove();
+    el.id = "theme-css";
+    refreshSettingsUI();
+    if (onApplied) onApplied();
+  }
+
+  // reload: fetch the file again even if this theme is already showing (after saving over it)
+  function changeTheme(themeId, { reload = false, onApplied = null } = {}) {
+    if (!THEMES.some(t => t.id === themeId)) themeId = "default";
+    storageSet(STORAGE.theme, themeId);
+    themeSelect.value = themeId;
+    const oldEl = document.getElementById("theme-css");
+    if (!reload && currentThemeId() === themeId) { if (onApplied) onApplied(); return; }
+    if (themeId === "default") {
+      if (oldEl) oldEl.remove();
+      refreshSettingsUI();
+      if (onApplied) onApplied();
+      return;
+    }
+    // Load the new sheet before dropping the old one so the page never flashes unstyled.
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `${THEMES_BASE}${themeId}.css` + (reload ? `?v=${Date.now()}` : "");
+    link.dataset.theme = themeId;
+    link.onload = () => installThemeElement(link, oldEl, onApplied);
+    link.onerror = async () => {
+      link.remove();
+      let css = null;
+      try { css = appApi() ? await appApi().get_theme(themeId) : null; } catch { css = null; }
+      if (css) {
+        const style = document.createElement("style");
+        style.dataset.theme = themeId;
+        style.textContent = css;
+        document.head.appendChild(style);
+        installThemeElement(style, oldEl, onApplied);
+      } else {
+        themeSelect.value = currentThemeId();   // file missing: stay on what's showing
+      }
+    };
+    document.head.appendChild(link);
+  }
+
+  rebuildThemeOptions();
+
+  // In the desktop app the themes folder is the source of truth: list exactly the files
+  // in it (themes added, edited or deleted there show up), and retry a saved theme that
+  // couldn't be loaded as a file.
+  async function onAppReady() {
+    const api = appApi();
+    if (!api) return;
+    try {
+      const list = await api.list_themes();
+      if (Array.isArray(list)) {
+        const current = currentThemeId();
+        const keep = THEMES.filter(t => t.builtIn || t.id === current);
+        THEMES.length = 0;
+        THEMES.push(...keep);
+        list.forEach(t => { if (THEME_ID_RE.test(t.id) && t.id !== "default") addThemeEntry({ id: t.id, name: t.name }); });
+        rebuildThemeOptions();
+      }
+    } catch { /* keep the list from the build */ }
+    if (pendingTheme && currentThemeId() === "default" && THEMES.some(t => t.id === pendingTheme)) {
+      changeTheme(pendingTheme);
+    }
+    pendingTheme = null;
+  }
+  window.addEventListener("pywebviewready", onAppReady);
+
+  // --- SAVE CURRENT LOOK AS A THEME ---
+  // Every value a theme can set, read from the page as it currently looks (theme + settings).
+  const THEME_VARS = [
+    ["Colors", ["bg-main", "bg-book-nav", "bg-chapter-nav", "bg-aside", "bg-toggle-bar", "bg-tile",
+      "bg-tile-hover", "bg-book-hover", "bg-table-th", "bg-table-hover", "bg-row-selected", "border-main",
+      "border-book-nav", "border-toggle", "border-table", "border-row-selected", "text-main", "text-strong",
+      "text-muted", "text-subtle", "text-row-selected", "accent", "accent-hover", "accent-text",
+      "link-color", "link-underline", "book-title-color", "chapter-num-color", "verse-num-color", "footnote-color"]],
+    ["Scrollbars & native controls", ["scrollbar-track", "scrollbar-thumb", "scrollbar-thumb-hover", "color-scheme"]],
+    ["Fonts", ["font-text", "font-ui", "font-verse-num", "font-heading"]],
+    ["Text layout", ["text-size", "line-height", "verse-spacing", "chapter-spacing", "text-width",
+      "verse-num-scale", "verse-num-x", "verse-num-y"]],
+  ];
+  // Optional colors fall back to these when the theme doesn't set them.
+  const THEME_VAR_FALLBACKS = { "book-title-color": "text-strong", "chapter-num-color": "accent", "verse-num-color": "accent", "footnote-color": "accent" };
+
+  function collectThemeVars() {
+    const cs = getComputedStyle(document.body);
+    const read = name => cs.getPropertyValue(`--${name}`).trim();
+    // Colors are written as plain values ("#rrggbb"), not as the color-mix() or var()
+    // expressions that derived colors use.
+    const isColor = name => name !== "color-scheme" && !name.startsWith("font-") &&
+      THEME_VARS.slice(0, 2).some(([, names]) => names.includes(name));
+    return THEME_VARS.map(([title, names]) => [title, names
+      .map(name => {
+        const value = read(name) || (THEME_VAR_FALLBACKS[name] ? read(THEME_VAR_FALLBACKS[name]) : "");
+        return [name, value && isColor(name) ? themeColorText(value) : value];
+      })
+      .filter(([, value]) => value)]);
+  }
+
+  function slugifyThemeName(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
+  }
+
+  // Same format as the files in Daily-Reading_themes (and as app.py writes), for the browser download.
+  function themeCssText(name, groups) {
+    const safeName = name.replace(/[\r\n*\/]/g, "");
+    const body = groups.map(([title, vars]) =>
+      `  /* ${title} */\n` + vars.map(([n, v]) => `  --${n}: ${v};`).join("\n")).join("\n\n");
+    return `/*\n * Theme: ${safeName}\n */\n:root {\n${body}\n}\n`;
+  }
+
+  const saveThemeBtn = document.getElementById("save-theme-btn");
+  const saveThemeForm = document.getElementById("save-theme-form");
+  const saveThemeName = document.getElementById("save-theme-name");
+  const saveThemeStatus = document.getElementById("save-theme-status");
+  let overwriteArmedFor = null;   // name the user was warned about; saving it again replaces the file
+
+  function showSaveStatus(text) {
+    saveThemeStatus.textContent = text;
+    saveThemeStatus.hidden = !text;
+  }
+
+  saveThemeBtn.addEventListener("click", () => {
+    saveThemeForm.hidden = false;
+    saveThemeBtn.hidden = true;
+    showSaveStatus("");
+    overwriteArmedFor = null;
+    const current = THEMES.find(t => t.id === currentThemeId());
+    saveThemeName.value = "";
+    saveThemeName.placeholder = current && !current.builtIn ? `e.g. ${current.name} (mine)` : "Theme name";
+    saveThemeName.focus();
+  });
+  function closeSaveForm() {
+    saveThemeForm.hidden = true;
+    saveThemeBtn.hidden = false;
+    overwriteArmedFor = null;
+  }
+  document.getElementById("save-theme-cancel").addEventListener("click", () => { closeSaveForm(); showSaveStatus(""); });
+  saveThemeName.addEventListener("input", () => { overwriteArmedFor = null; });
+
+  saveThemeForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = saveThemeName.value.trim();
+    const id = slugifyThemeName(name);
+    if (!name || !id) { showSaveStatus("Enter a name using letters or numbers."); return; }
+    if (id === "default") { showSaveStatus("“Default” is the built-in theme; choose another name."); return; }
+    const groups = collectThemeVars();
+    const api = appApi();
+
+    if (!api) {
+      // Plain browser: can't write files, so download it instead.
+      const blob = new Blob([themeCssText(name, groups)], { type: "text/css" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${id}.css`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      closeSaveForm();
+      showSaveStatus(`Downloaded ${id}.css. Move it into the Daily-Reading_themes folder to use it.`);
+      return;
+    }
+
+    let result;
+    try {
+      result = await api.save_theme(name, groups, overwriteArmedFor === id);
+    } catch (err) {
+      showSaveStatus(`Couldn't save the theme: ${err && err.message ? err.message : err}`);
+      return;
+    }
+    if (result && result.exists) {
+      overwriteArmedFor = id;
+      showSaveStatus(`A theme named “${result.name}” already exists. Click Save again to replace it.`);
+      return;
+    }
+    if (!result || !result.ok) {
+      showSaveStatus(`Couldn't save the theme: ${(result && result.error) || "unknown error"}`);
+      return;
+    }
+    addThemeEntry({ id: result.id, name: result.name });
+    rebuildThemeOptions();
+    closeSaveForm();
+    // The settings are now part of the theme, so clear them once the theme has loaded.
+    changeTheme(result.id, {
+      reload: true,
+      onApplied: () => {
+        userSettings = {};
+        saveSettings();
+        applySettings();
+        refreshSettingsUI();
+      },
+    });
+    showSaveStatus(`Saved “${result.name}” to the Daily-Reading_themes folder and switched to it.`);
+  });
+
+  // --- READING SETTINGS (override theme values via inline custom properties) ---
+
+  const FONT_OPTIONS = [
+    ["Georgia", 'Georgia, "Times New Roman", serif'],
+    ["Cambria", "Cambria, Georgia, serif"],
+    ["Constantia", "Constantia, Georgia, serif"],
+    ["Palatino Linotype", '"Palatino Linotype", "Book Antiqua", Palatino, serif'],
+    ["Book Antiqua", '"Book Antiqua", "Palatino Linotype", serif'],
+    ["Garamond", 'Garamond, "Palatino Linotype", serif'],
+    ["Sitka Text", '"Sitka Text", Georgia, serif'],
+    ["Times New Roman", '"Times New Roman", Times, serif'],
+    ["Sitka Small", '"Sitka Small", "Sitka Text", Georgia, serif'],
+    ["Segoe UI", '"Segoe UI", system-ui, sans-serif'],
+    ["Segoe UI Semilight", '"Segoe UI Semilight", "Segoe UI", sans-serif'],
+    ["Segoe UI Light", '"Segoe UI Light", "Segoe UI", sans-serif'],
+    ["Calibri", 'Calibri, "Segoe UI", sans-serif'],
+    ["Candara", 'Candara, "Segoe UI", sans-serif'],
+    ["Corbel", 'Corbel, "Segoe UI", sans-serif'],
+    ["Verdana", "Verdana, Geneva, sans-serif"],
+    ["Tahoma", 'Tahoma, "Segoe UI", sans-serif'],
+  ];
+  // Color pickers: cssVar is the theme color they set; fallback is the theme color shown
+  // (and used) when the theme doesn't set cssVar itself.
+  const color = (key, label, cssVar, fallback) => ({ key, label, type: "color", cssVar, fallback });
+  // Other color settings pick one of the main colors (whatever each is currently set to).
+  const COLOR_CHOICES = [
+    ["Text", "var(--text-main)"],
+    ["Strong text", "var(--text-strong)"],
+    ["Accent", "var(--accent)"],
+    ["Links", "var(--link-color)"],
+  ];
+  const colorChoice = (key, label, cssVar) => ({ key, label, type: "select", cssVar, options: COLOR_CHOICES });
+
+  const SETTINGS_SCHEMA = [
+    { section: "Reading Text", items: [
+      { key: "fontText", label: "Font", type: "select", cssVar: "--font-text", options: FONT_OPTIONS },
+      { key: "textSize", label: "Size", type: "range", cssVar: "--text-size", min: 12, max: 32, step: 1, unit: "px" },
+      { key: "lineHeight", label: "Line spacing", type: "range", cssVar: "--line-height", min: 1, max: 3, step: 0.02, unit: "" },
+      { key: "verseSpacing", label: "Verse spacing", type: "range", cssVar: "--verse-spacing", min: 0, max: 3, step: 0.05, unit: "em" },
+      { key: "chapterSpacing", label: "Chapter spacing", type: "range", cssVar: "--chapter-spacing", min: 0.5, max: 8, step: 0.1, unit: "em" },
+      { key: "textWidth", label: "Text width", type: "range", cssVar: "--text-width", min: 36, max: 140, step: 2, unit: "ch" },
+      // Footnotes from the XML bibles and the ESV, NASB and NIV (the AV has none)
+      { key: "footnotes", label: "Footnotes", type: "select", bodyClass: true, noDefault: true,
+        options: [["Hidden", ""], ["Shown", "show-footnotes"]] },
+      colorChoice("footnoteColor", "Footnote color", "--footnote-color"),
+    ]},
+    { section: "Verse Numbers", items: [
+      { key: "verseNumStyle", label: "Style", type: "select", bodyClass: true, noDefault: true,
+        options: [["In margin", ""], ["Inline (superscript)", "vn-inline"], ["Hidden", "vn-hidden"]] },
+      { key: "verseNumScale", label: "Size", type: "range", cssVar: "--verse-num-scale", min: 0.45, max: 1.2, step: 0.01, unit: "", display: v => Math.round(v * 100) + "%" },
+      { key: "verseNumX", label: "Horizontal", type: "range", cssVar: "--verse-num-x", min: -40, max: 40, step: 1, unit: "px" },
+      { key: "verseNumY", label: "Vertical", type: "range", cssVar: "--verse-num-y", min: -20, max: 20, step: 1, unit: "px" },
+      colorChoice("verseNumColor", "Color", "--verse-num-color"),
+      { key: "fontVerseNum", label: "Font", type: "select", cssVar: "--font-verse-num", options: FONT_OPTIONS },
+    ]},
+    // Book name and chapter number, in the text and in the top bar: separate colors, one
+    // font so they match. By default the name uses the strong text color, the number the accent.
+    { section: "Book & Chapter", items: [
+      colorChoice("bookTitleColor", "Book color", "--book-title-color"),
+      colorChoice("chapterNumColor", "Chapter color", "--chapter-num-color"),
+      { key: "fontHeading", label: "Font", type: "select", cssVar: "--font-heading", options: FONT_OPTIONS },
+    ]},
+    { section: "Colors", items: [
+      color("colorBgMain", "Background", "--bg-main"),
+      color("colorText", "Text", "--text-main"),
+      color("colorTextStrong", "Strong text", "--text-strong"),
+      color("colorAccent", "Accent", "--accent"),
+      color("colorAccentText", "Text on accent", "--accent-text"),
+      color("colorLink", "Links", "--link-color"),
+      color("colorBookNav", "Book list", "--bg-book-nav"),
+      color("colorChapterNav", "Chapter list", "--bg-chapter-nav"),
+      color("colorAside", "Schedule", "--bg-aside"),
+      color("colorTile", "Buttons", "--bg-tile"),
+      color("colorBorder", "Borders", "--border-main"),
+      color("colorScrollbar", "Scrollbar", "--scrollbar-thumb"),
+    ]},
+    // Every other color a theme can set. Any of these left unset follow the main colors
+    // above when those are changed here (see DERIVED_COLORS).
+    { section: "More colors", collapsible: true,
+      note: "Unset colors follow the main colors when you change those.", items: [
+      color("colorAccentHover", "Accent hover", "--accent-hover"),
+      color("colorTileHover", "Button hover", "--bg-tile-hover"),
+      color("colorBookHover", "Book hover", "--bg-book-hover"),
+      color("colorBookNavBorder", "Book list border", "--border-book-nav"),
+      color("colorToggleBar", "Toggle bar", "--bg-toggle-bar"),
+      color("colorToggleBorder", "Control borders", "--border-toggle"),
+      color("colorTextMuted", "Muted text", "--text-muted"),
+      color("colorTextSubtle", "Faint text", "--text-subtle"),
+      color("colorLinkUnderline", "Link underline", "--link-underline"),
+      color("colorTableHead", "Table header", "--bg-table-th"),
+      color("colorTableHover", "Table hover", "--bg-table-hover"),
+      color("colorTableBorder", "Table borders", "--border-table"),
+      color("colorRowSelected", "Today's row", "--bg-row-selected"),
+      color("colorRowSelectedBorder", "Today's border", "--border-row-selected"),
+      color("colorRowSelectedText", "Today's text", "--text-row-selected"),
+      color("colorScrollbarHover", "Scrollbar hover", "--scrollbar-thumb-hover"),
+      { ...color("colorScrollbarTrack", "Scrollbar track", "--scrollbar-track"), allowNone: true },
+      { key: "colorScheme", label: "Built-in controls", type: "select", cssVar: "--color-scheme",
+        options: [["Light", "light"], ["Dark", "dark"]] },
+    ]},
+    { section: "Interface", items: [
+      // Applied when the slider is released (the panel itself scales, so live updates fight the drag).
+      { key: "uiScale", label: "UI scale", type: "range", cssVar: "--ui-scale", min: 0.75, max: 1.6, step: 0.05, unit: "", applyOnRelease: true, display: v => Math.round(v * 100) + "%" },
+      { key: "fontUi", label: "UI font", type: "select", cssVar: "--font-ui", options: FONT_OPTIONS },
+    ]},
+  ];
+  const SETTINGS_ITEMS = SETTINGS_SCHEMA.flatMap(s => s.items);
+
+  // Secondary colors worked out from the main ones. One applies when a main color it uses
+  // has been changed in settings and the secondary color itself hasn't; otherwise the
+  // theme's own value is kept.
+  const mix = (a, pct, b) => `color-mix(in srgb, var(${a}) ${pct}%, var(${b}))`;
+  const DERIVED_COLORS = [
+    ["colorAccentHover",       "--accent-hover",         ["colorAccent", "colorTextStrong"],   mix("--accent", 80, "--text-strong")],
+    ["colorTileHover",         "--bg-tile-hover",        ["colorTile", "colorBgMain"],         mix("--bg-tile", 65, "--bg-main")],
+    ["colorBookHover",         "--bg-book-hover",        ["colorBookNav", "colorBgMain"],      mix("--bg-book-nav", 60, "--bg-main")],
+    ["colorBookNavBorder",     "--border-book-nav",      ["colorBorder", "colorBookNav"],      mix("--border-main", 45, "--bg-book-nav")],
+    ["colorToggleBar",         "--bg-toggle-bar",        ["colorBookNav", "colorBgMain"],      mix("--bg-book-nav", 60, "--bg-main")],
+    ["colorToggleBorder",      "--border-toggle",        ["colorBorder", "colorBgMain"],       mix("--border-main", 75, "--bg-main")],
+    ["colorTextMuted",         "--text-muted",           ["colorText", "colorBgMain"],         mix("--text-main", 70, "--bg-main")],
+    ["colorTextSubtle",        "--text-subtle",          ["colorText", "colorBgMain"],         mix("--text-main", 55, "--bg-main")],
+    ["colorLinkUnderline",     "--link-underline",       ["colorLink", "colorBgMain"],         mix("--link-color", 50, "--bg-main")],
+    ["colorTableHead",         "--bg-table-th",          ["colorAside", "colorBgMain"],        mix("--bg-aside", 45, "--bg-main")],
+    ["colorTableHover",        "--bg-table-hover",       ["colorAside", "colorBgMain"],        mix("--bg-aside", 20, "--bg-main")],
+    ["colorTableBorder",       "--border-table",         ["colorBorder", "colorBgMain"],       mix("--border-main", 55, "--bg-main")],
+    ["colorRowSelected",       "--bg-row-selected",      ["colorAccent", "colorBgMain"],       mix("--accent", 20, "--bg-main")],
+    ["colorRowSelectedBorder", "--border-row-selected",  ["colorAccent", "colorBgMain"],       mix("--accent", 55, "--bg-main")],
+    ["colorRowSelectedText",   "--text-row-selected",    ["colorTextStrong"],                  "var(--text-strong)"],
+    ["colorScrollbarHover",    "--scrollbar-thumb-hover", ["colorScrollbar", "colorText"],     mix("--scrollbar-thumb", 75, "--text-main")],
+  ];
+
+  function isSetting(value) { return value !== undefined && value !== null && value !== ""; }
+  let userSettings = {};
+  try { userSettings = JSON.parse(storageGet(STORAGE.settings, "{}")) || {}; } catch { userSettings = {}; }
+  // Older versions stored these differently; anything that isn't one of the choices resets.
+  delete userSettings.headingColor;
+  for (const key of ["verseNumColor", "bookTitleColor", "chapterNumColor"]) {
+    if (isSetting(userSettings[key]) && !COLOR_CHOICES.some(([, v]) => v === userSettings[key])) delete userSettings[key];
+  }
+
+  // Any CSS color (including var() and color-mix()) -> [r, g, b, alpha], resolved by the
+  // browser on a hidden element inside body, so body's settings apply.
+  let colorProbe = null;
+  function resolveColor(value) {
+    if (!colorProbe) {
+      colorProbe = document.createElement("span");
+      colorProbe.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;visibility:hidden";
+      document.body.appendChild(colorProbe);
+    }
+    colorProbe.style.color = "";
+    colorProbe.style.color = value || "#000000";
+    const m = getComputedStyle(colorProbe).color.match(/[\d.]+/g) || ["0", "0", "0"];
+    // rgb(r g b / a), rgba(r, g, b, a) or color(srgb r g b / a) (fractions)
+    const nums = m.map(Number);
+    const isFraction = /^color\(/.test(getComputedStyle(colorProbe).color);
+    const rgb = nums.slice(0, 3).map(n => Math.round(isFraction ? n * 255 : n));
+    return [...rgb, nums.length > 3 ? nums[3] : 1];
+  }
+  function hexOf([r, g, b]) {
+    return "#" + [r, g, b].map(n => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0")).join("");
+  }
+  // Any CSS color -> "#rrggbb" for <input type="color">.
+  function toHexColor(value) { return hexOf(resolveColor(value)); }
+  // A color as it should be written in a theme file: "#rrggbb", or "transparent".
+  function themeColorText(value) {
+    const c = resolveColor(value);
+    if (c[3] === 0) return "transparent";
+    if (c[3] < 1) return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${+c[3].toFixed(3)})`;
+    return hexOf(c);
+  }
+  function isLightColor(value) {
+    const [r, g, b] = resolveColor(value);
+    return 0.299 * r + 0.587 * g + 0.114 * b > 140;
+  }
+
+  const settingControls = new Map();
+
+  function isSet(value) { return isSetting(value); }
+
+  function applySettings() {
+    const style = document.body.style;
+    SETTINGS_ITEMS.forEach(item => {
+      const value = userSettings[item.key];
+      if (item.bodyClass) {
+        item.options.forEach(([, cls]) => cls && document.body.classList.remove(cls));
+        if (isSet(value)) document.body.classList.add(value);
+      } else {
+        // cssVar may be one property or a list (one setting driving several properties)
+        for (const prop of [].concat(item.cssVar)) {
+          if (isSet(value)) style.setProperty(prop, item.type === "range" ? `${value}${item.unit}` : value);
+          else style.removeProperty(prop);
+        }
+      }
+    });
+    // Secondary colors follow changed main colors unless set themselves.
+    DERIVED_COLORS.forEach(([key, prop, bases, value]) => {
+      if (!isSet(userSettings[key]) && bases.some(b => isSet(userSettings[b]))) style.setProperty(prop, value);
+    });
+    // Native controls (dropdowns, pickers, scrollbar arrows) match a changed background.
+    if (!isSet(userSettings.colorScheme) && isSet(userSettings.colorBgMain)) {
+      style.setProperty("--color-scheme", isLightColor(userSettings.colorBgMain) ? "light" : "dark");
+    }
+  }
+
+  function saveSettings() {
+    storageSet(STORAGE.settings, JSON.stringify(userSettings));
+  }
+
+  function setSetting(key, value) {
+    if (isSet(value)) userSettings[key] = value; else delete userSettings[key];
+    saveSettings();
+    applySettings();
+    refreshSettingsUI();
+  }
+
+  function buildSettingsUI() {
+    const container = document.getElementById("settings-dynamic");
+    SETTINGS_SCHEMA.forEach(group => {
+      const section = document.createElement(group.collapsible ? "details" : "div");
+      section.className = "settings-section";
+      section.innerHTML = group.collapsible
+        ? `<summary><h3>${group.section}</h3></summary>` : `<h3>${group.section}</h3>`;
+      if (group.note) {
+        const note = document.createElement("p");
+        note.className = "settings-note";
+        note.textContent = group.note;
+        section.appendChild(note);
+      }
+      group.items.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "setting-row";
+        const id = `setting-${item.key}`;
+        const label = document.createElement("label");
+        label.htmlFor = id;
+        label.textContent = item.label;
+        row.appendChild(label);
+
+        let control, valueEl = null;
+        if (item.type === "color") {
+          control = document.createElement("input");
+          control.type = "color";
+          control.className = "color-input";
+          control.addEventListener("input", () => setSetting(item.key, control.value));
+          if (item.allowNone) {
+            // "None" = transparent, which a color picker can't show.
+            const wrap = document.createElement("div");
+            wrap.className = "color-wrap";
+            const noneLabel = document.createElement("label");
+            noneLabel.className = "none-toggle";
+            noneLabel.title = "No color (transparent)";
+            const none = document.createElement("input");
+            none.type = "checkbox";
+            none.addEventListener("change", () => setSetting(item.key, none.checked ? "transparent" : control.value));
+            noneLabel.append(none, "None");
+            wrap.append(control, noneLabel);
+            row.appendChild(wrap);
+            item.noneBox = none;
+          } else {
+            row.appendChild(control);
+          }
+        } else if (item.type === "select") {
+          control = document.createElement("select");
+          if (!item.noDefault) control.add(new Option("Theme default", ""));
+          item.options.forEach(([text, value]) => control.add(new Option(text, value)));
+          control.addEventListener("change", () => setSetting(item.key, control.value));
+          row.appendChild(control);
+        } else {
+          const wrap = document.createElement("div");
+          wrap.className = "range-wrap";
+          control = document.createElement("input");
+          control.type = "range";
+          control.min = item.min; control.max = item.max; control.step = item.step;
+          valueEl = document.createElement("span");
+          if (item.applyOnRelease) {
+            // Show the value while dragging; apply it when the slider is released.
+            control.addEventListener("input", () => {
+              const v = Number(control.value);
+              valueEl.textContent = item.display ? item.display(v) : `${v}${item.unit}`;
+            });
+            control.addEventListener("change", () => {
+              setSetting(item.key, Number(control.value));
+              keepInView(control);
+            });
+          } else {
+            control.addEventListener("input", () => setSetting(item.key, Number(control.value)));
+          }
+          valueEl.className = "range-value";
+          wrap.append(control, valueEl);
+          row.appendChild(wrap);
+        }
+        control.id = id;
+
+        const reset = document.createElement("button");
+        reset.className = "reset-one";
+        reset.title = "Use theme default";
+        reset.setAttribute("aria-label", `Reset ${item.label} to theme default`);
+        reset.textContent = "↺";
+        reset.addEventListener("click", () => setSetting(item.key, ""));
+        row.appendChild(reset);
+
+        settingControls.set(item.key, { item, control, valueEl, reset });
+        section.appendChild(row);
+      });
+      container.appendChild(section);
+    });
+
+    document.getElementById("settings-reset-all").addEventListener("click", () => {
+      userSettings = {};
+      saveSettings();
+      applySettings();
+      refreshSettingsUI();
+    });
+  }
+
+  // After the panel rescales, scroll it so this control is still visible.
+  function keepInView(el) {
+    requestAnimationFrame(() => el.closest(".setting-row")?.scrollIntoView({ block: "nearest" }));
+  }
+
+  function refreshSettingsUI() {
+    // Called after every settings or theme change, so keep the name widths current too.
+    if (!settingControls.size) return;
+    const computed = getComputedStyle(document.body);
+    settingControls.forEach(({ item, control, valueEl, reset }) => {
+      const value = userSettings[item.key];
+      const overridden = isSet(value);
+      reset.disabled = !overridden;
+      if (item.type === "color") {
+        const read = name => computed.getPropertyValue(name).trim();
+        const shown = overridden ? value : (read(item.cssVar) || (item.fallback ? read(item.fallback) : ""));
+        const c = resolveColor(shown);
+        // Transparent: keep the picker on the last real color so unticking "None" restores it.
+        if (c[3] > 0) control.value = hexOf(c);
+        if (item.noneBox) {
+          item.noneBox.checked = c[3] === 0;
+          control.classList.toggle("is-none", c[3] === 0);
+        }
+      } else if (item.type === "select") {
+        control.value = overridden ? value : (item.noDefault ? item.options[0][1] : "");
+      } else {
+        const current = overridden ? Number(value) : parseFloat(computed.getPropertyValue(item.cssVar));
+        control.value = current;
+        valueEl.textContent = item.display ? item.display(current) : `${+current.toFixed(2)}${item.unit}`;
+        valueEl.classList.toggle("overridden", overridden);
+      }
+    });
+  }
+
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsPanel = document.getElementById("settings-panel");
+  function toggleSettings(open = settingsPanel.hidden) {
+    settingsPanel.hidden = !open;
+    settingsBtn.setAttribute("aria-expanded", String(open));
+    if (open) refreshSettingsUI();
+  }
+  settingsBtn.addEventListener("click", () => toggleSettings());
+  document.getElementById("settings-close").addEventListener("click", () => toggleSettings(false));
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !settingsPanel.hidden) toggleSettings(false); });
+  document.addEventListener("mousedown", e => {
+    if (!settingsPanel.hidden && !settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) toggleSettings(false);
+  });
+
+  // --- BOOK & CHAPTER NAVIGATION ---
+
+  booksData.forEach(book => {
+    const link = document.createElement("a");
+    link.className = "book-item";
+    link.href = `#${book.id}`;
+    link.textContent = book.name;
+    link.dataset.book = book.id;
+    link.dataset.testament = book.testament;
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (book.chapters.length > 0) navigateToChapter(book.id, book.chapters.at(0).id);
+    });
+    bookList.appendChild(link);
+  });
+
+  function setTestament(testament) {
+    currentTestament = testament;
+    document.getElementById("btn-ot").classList.toggle("active", testament === "OT");
+    document.getElementById("btn-nt").classList.toggle("active", testament === "NT");
+
+    document.querySelectorAll(".book-item").forEach(el => {
+      el.classList.toggle("hidden", el.dataset.testament !== testament);
+    });
+    const active = document.querySelector(".book-item.active:not(.hidden)");
+    if (active) active.scrollIntoView({ block: "nearest" });
+  }
+
+  function setActiveBook(bookId) {
+    if (activeBookId === bookId) return;
+    activeBookId = bookId;
+
+    const book = bookById.get(bookId);
+    if (!book) return;
+
+    if (book.testament !== currentTestament) {
+      setTestament(book.testament);
+    }
+
+    document.querySelectorAll(".book-item").forEach(el => {
+      const isMatch = el.dataset.book === bookId;
+      el.classList.toggle("active", isMatch);
+      if (isMatch) el.scrollIntoView({ block: "nearest" });
+    });
+
+    chapterTitle.textContent = book.name;
+    chapterGrid.innerHTML = "";
+    book.chapters.forEach(chap => {
+      const a = document.createElement("a");
+      a.className = "chapter-item";
+      a.href = `#${chap.id}`;
+      a.textContent = chap.num;
+      a.dataset.chapter = chap.id;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        navigateToChapter(book.id, chap.id);
+      });
+      chapterGrid.appendChild(a);
+    });
+
+    if (activeChapterId) highlightChapterTile(activeChapterId);
+  }
+
+  function setActiveChapter(chapterId) {
+    if (activeChapterId === chapterId) return;
+    activeChapterId = chapterId;
+    highlightChapterTile(chapterId);
+  }
+
+  function highlightChapterTile(chapterId) {
+    document.querySelectorAll(".chapter-item").forEach(el => {
+      const isMatch = el.dataset.chapter === chapterId;
+      el.classList.toggle("active", isMatch);
+      if (isMatch) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function setActive(chapterId) {
+    const info = chapterInfo.get(chapterId);
+    if (!info) return;
+    setActiveBook(info.book.id);
+    setActiveChapter(chapterId);
+  }
+
+  // --- SCROLL POSITION TRACKING ---
+  // The top bar shows the book whose title, and the chapter whose number, has scrolled up
+  // out of sight behind the bar; the highlighted chapter button follows the bar. The reading position is
+  // kept as "verse + fraction" so it can be restored exactly after any reflow
+  // (window resize, settings, translation).
+
+  const topBar = document.getElementById("top-bar");
+  const barBookEl = document.getElementById("bar-book");
+  const barChapterEl = document.getElementById("bar-chapter");
+  let chapterEls = [];
+  let chapterTops = [];
+  let sectionEls = [];      // loaded books, in order
+  let titleHeight = 0;      // height of the top bar
+  let dockTop = 0;          // a chapter's number row is at the bar when chapterTop <= scrollTop + dockTop
+  let hiddenShift = 0;      // how far above the bar a heading row's top is when its text has just gone behind the bar
+  let anchor = null;        // { chapterId, v, frac, px }
+  let pinned = null;        // { chapterId, top } set by explicit navigation
+
+  // Size of the text block when it was last measured. If it differs, the text has
+  // reflowed and the ResizeObserver below hasn't restored the position yet.
+  let layoutSig = "";
+  function currentLayoutSig() {
+    return `${bibleContent.offsetWidth}x${bibleContent.offsetHeight}`;
+  }
+
+  function measureChapters() {
+    chapterEls = [...bibleContent.querySelectorAll(".chapter")];
+    chapterTops = chapterEls.map(el => el.offsetTop);
+    sectionEls = [...bibleContent.querySelectorAll(".book-section")];
+    titleHeight = topBar.offsetHeight;
+    // A chapter's number row is the bottom bar-height of its gap, so it reaches the bar
+    // when the chapter's top is (gap - bar) above the top of the pane.
+    dockTop = titleHeight - document.getElementById("spacing-probe").offsetHeight;
+    // A heading's name and number are centred in a bar-high row (line-height 1), so they're
+    // hidden behind the bar once the row's top is (bar - lowest ink) above the pane's top.
+    // (- 2 cancels the 2px rounding tolerance in updateActiveFromScroll, so no ink shows.)
+    hiddenShift = Math.max(0, titleHeight - Math.min(titleHeight, headingInkBottom()) - 2);
+    layoutSig = currentLayoutSig();
+  }
+
+  // How far below the top of a heading row its text's ink reaches (letters like g, p, y
+  // hang below the line box), measured for the heading font in use.
+  const inkCanvas = document.createElement("canvas").getContext("2d");
+  let inkCache = { key: "", value: 0 };
+  function headingInkBottom() {
+    const style = getComputedStyle(barBookEl);
+    const fontSize = parseFloat(style.fontSize) || 0;
+    const key = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}|${titleHeight}`;
+    if (inkCache.key === key) return inkCache.value;
+    inkCanvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const m = inkCanvas.measureText("Judges gjpqy 0123456789");
+    let value;
+    if (m.fontBoundingBoxAscent != null && m.actualBoundingBoxDescent != null) {
+      // line-height 1: the font's ascent + descent is centred on a 1em line box
+      const contentH = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
+      const baseline = (fontSize - contentH) / 2 + m.fontBoundingBoxAscent;
+      value = (titleHeight - fontSize) / 2 + baseline + m.actualBoundingBoxDescent;
+    } else {
+      value = (titleHeight + fontSize) / 2 + 0.25 * fontSize;   // no metrics: allow for descenders
+    }
+    inkCache = { key, value };
+    return value;
+  }
+  // A heading font that finishes loading later has different measurements.
+  document.fonts?.addEventListener?.("loadingdone", () => { inkCache.key = ""; });
+
+  // The bar (like the book titles in the text) uses the name that reads right before a
+  // chapter number: "Psalm 23", while the navigation on the left says "Psalms".
+  function setBar(bookId, chapterNum) {
+    const book = bookId ? bookById.get(bookId) : null;
+    const name = book ? book.barName || book.name : "";
+    if (barBookEl.textContent !== name) barBookEl.textContent = name;
+    if (barChapterEl.textContent !== chapterNum) barChapterEl.textContent = chapterNum;
+  }
+
+  function versesOf(chapterEl) {
+    return chapterEl.querySelectorAll(":scope > .verse");
+  }
+
+  function chapterIndexAt(y) {
+    let lo = 0, hi = chapterTops.length - 1, ans = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (chapterTops[mid] <= y) { ans = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return ans;
+  }
+
+  // Top of the visible reading area (just below the top bar)
+  function readingTop() {
+    return mainPane.scrollTop + titleHeight;
+  }
+
+  function captureAnchor() {
+    if (!chapterEls.length) return null;
+    const y = readingTop();
+    const start = chapterIndexAt(y);
+    for (let k = start; k < Math.min(start + 2, chapterEls.length); k++) {
+      // An online chapter still loading has no verses: hold the position relative to its
+      // top, so it stays put while it (or anything above it) fills in.
+      if (chapterEls[k].classList.contains("chapter-pending") && chapterTops[k] + chapterEls[k].offsetHeight > y) {
+        return { chapterId: chapterEls[k].id, v: 0, frac: -1, px: y - chapterTops[k], fromTop: true };
+      }
+      for (const verse of versesOf(chapterEls[k])) {
+        const top = verse.offsetTop, h = verse.offsetHeight;
+        if (top + h > y) {
+          return { chapterId: chapterEls[k].id, v: Number(verse.dataset.v), frac: h ? (y - top) / h : 0, px: y - top };
+        }
+      }
+    }
+    // Below the last verse (the empty space after the text, e.g. after dragging the
+    // scrollbar to the bottom): measure from the last verse, so the position stays current.
+    const lastChapter = chapterEls.at(-1);
+    const lastVerse = [...versesOf(lastChapter)].at(-1);
+    if (lastVerse && y >= lastVerse.offsetTop) {
+      return { chapterId: lastChapter.id, v: Number(lastVerse.dataset.v), frac: 2, px: y - lastVerse.offsetTop };
+    }
+    return null;
+  }
+
+  function findVerse(chapterEl, v) {
+    const verses = versesOf(chapterEl);
+    let best = null;
+    for (const verse of verses) {
+      if (Number(verse.dataset.v) <= v) best = verse; else break;
+    }
+    return best || verses[0];
+  }
+
+  function restoreAnchor(a) {
+    if (!a) return;
+    const chapterEl = document.getElementById(a.chapterId);
+    if (!chapterEl || !bibleContent.contains(chapterEl)) return;
+    const verse = a.fromTop ? null : findVerse(chapterEl, a.v);
+    // Measured from the chapter's top: a chapter still loading, or a verse whose chapter
+    // is loading now (just switched translation; the place in it is restored on arrival).
+    const y = !verse ? chapterEl.offsetTop + (a.fromTop ? a.px : 0)
+      : (a.frac >= 0 && a.frac <= 1)
+      ? verse.offsetTop + a.frac * verse.offsetHeight
+      : verse.offsetTop + a.px;
+    const target = Math.round(y - titleHeight);
+    // Ignore sub-pixel differences: setting scrollTop interrupts smooth wheel scrolling.
+    if (Math.abs(mainPane.scrollTop - target) > 1) mainPane.scrollTop = target;
+  }
+
+  function updateActiveFromScroll() {
+    if (!chapterEls.length) return;
+    if (pinned) {
+      // Just navigated (possibly to a chapter too close to the end to reach the bar).
+      if (Math.abs(mainPane.scrollTop - pinned.top) < 2) {
+        const info = chapterInfo.get(pinned.chapterId);
+        setBar(info.book.id, info.num);
+        setActive(pinned.chapterId);
+        return;
+      }
+      pinned = null;
+    }
+    // A heading takes over the bar as soon as its text has scrolled out of sight behind it
+    // (2px tolerance for rounding after a reflow).
+    const top = mainPane.scrollTop + hiddenShift + 2;
+    // Section: the last title row whose text has gone behind the bar (the first one starts under it).
+    let section = sectionEls[0];
+    for (const sec of sectionEls) {
+      if (sec.offsetTop <= top) section = sec; else break;
+    }
+    if (!section) return;
+    // Chapter: the section's first chapter (its number is in the title row), or a later
+    // chapter of the same section whose number has gone behind the bar.
+    const first = section.querySelector(".chapter");
+    let chapterEl = first;
+    const idx = chapterIndexAt(top + dockTop);
+    const candidate = chapterEls[idx];
+    if (candidate && candidate !== first && candidate.parentElement === section &&
+        chapterTops[idx] <= top + dockTop) {
+      chapterEl = candidate;
+    }
+    // The bar always shows a book and chapter, and the highlighted chapter matches it.
+    setBar(section.dataset.book, chapterEl.dataset.num);
+    setActive(chapterEl.id);
+  }
+
+  let scrollQueued = false;
+  mainPane.addEventListener("scroll", () => {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => {
+      scrollQueued = false;
+      // Mid-reflow (e.g. dragging a settings slider): the old scroll offset now points at
+      // different text, so don't record it — the ResizeObserver restores the saved verse.
+      if (currentLayoutSig() !== layoutSig) return;
+      anchor = captureAnchor() || anchor;
+      updateActiveFromScroll();
+      scheduleWindowShift();
+    });
+  }, { passive: true });
+
+  // --- WHAT'S LOADED ---
+  // Only a handful of chapters are in the page at a time (the full text of each
+  // translation stays in its <template>). Two modes:
+  //   "reading": a schedule row's chapters, in the row's order, and nothing else.
+  //   "browse":  the current chapter and 2 on each side (chosen from the navigation on
+  //              the left); chapters load and unload as the reader scrolls.
+
+  const allChapterIds = booksData.flatMap(b => b.chapters.map(c => c.id));
+  const chapterOrder = new Map(allChapterIds.map((id, i) => [id, i]));
+  const BROWSE_RADIUS = 2;
+  // The built-in text (the AV) also gives every chapter its layout: book titles and
+  // chapter numbers. Online translations fill the same layout with their own verses.
+  const layoutTemplate = document.getElementById(`tr-${translationsData.find(t => !t.online)?.id}`);
+  const layoutChapters = new Map([...layoutTemplate.content.querySelectorAll(".chapter")].map(c => [c.id, c]));
+  const layoutTitles = new Map([...layoutTemplate.content.querySelectorAll(".book-section")]
+    .map(sec => [sec.dataset.book, sec.querySelector(".book-title")]));
+  let loadedIds = [];               // chapter ids in the page, in order
+  let loadMode = "browse";
+  let readingRow = null;            // schedule <tr> loaded in reading mode
+
+  // Puts exactly these chapters in the page. Consecutive chapters of the same book share
+  // one section headed by the book's title (reading mode may list a book more than once).
+  let keyPageShown = false;         // the "add your API key" page is showing instead of text
+  let keyPageChapter = null;        // the chapter to show once there's a key
+
+  function renderChapters(ids) {
+    const tr = translationById(currentTranslation);
+    if (needsKeyPage(tr)) {
+      if (!keyPageShown) keyPageChapter = activeChapterId;
+      keyPageShown = true;
+      loadedIds = ids.filter(id => layoutChapters.has(id));
+      bibleContent.replaceChildren(buildKeyPage(tr));
+      mainPane.scrollTop = 0;
+      pinned = null;
+      anchor = null;
+      measureChapters();
+      onlineChaptersShown();
+      return;
+    }
+    keyPageShown = false;
+    const frag = document.createDocumentFragment();
+    let section = null;
+    for (const id of ids) {
+      const chapter = chapterNode(id);
+      if (!chapter) continue;
+      const bookId = chapter.dataset.book;
+      if (!section || section.dataset.book !== bookId) {
+        section = document.createElement("section");
+        section.className = "book-section";
+        section.dataset.book = bookId;
+        const title = layoutTitles.get(bookId);
+        if (title) section.appendChild(title.cloneNode(true));
+        frag.appendChild(section);
+      }
+      section.appendChild(chapter);
+    }
+    // Each section's first chapter: its number goes in the title row ("Psalms 1").
+    frag.querySelectorAll(".book-section").forEach(sec => {
+      const first = sec.querySelector(".chapter");
+      const numCell = sec.querySelector(".book-title > :last-child");
+      if (!first || !numCell) return;
+      numCell.textContent = first.dataset.num;
+      first.querySelector(".chapter-head")?.classList.add("merged");
+    });
+    loadedIds = ids.filter(id => layoutChapters.has(id));
+    bibleContent.replaceChildren(frag);
+    measureChapters();
+    onlineChaptersShown();
+  }
+
+  // --- ONLINE TRANSLATIONS (ESV, NASB, NIV) ---
+  // Fetched a chapter at a time through the desktop app (bible_api.py), with the reader's
+  // own keys. Only a few hundred verses are kept (the ESV API allows caching 500).
+
+  const CACHE_VERSES = 500;
+  const RETRY_AFTER_MS = 30000;
+  const inDesktopApp = /[#&]themes=/.test(location.hash);   // app.py opens the page this way
+  const onlineKeys = { esv: false, apibible: false };      // which keys are saved
+  let onlineReady = false;                                 // onlineKeys has been read
+  const remoteCache = new Map();    // "tr|chapterId" -> { node, verseCount, fumsToken, copyright }
+  const inflight = new Set();       // "tr|chapterId" being fetched
+  const failed = new Map();         // "tr|chapterId" -> { error, needsKey, at }
+  let shownKeys = new Set();        // "tr|chapterId" in the page (usage is reported when shown)
+  let pendingAnchor = null;         // place to restore once its chapter arrives (translation switch)
+
+  // XML bibles in the Daily-Reading_bibles folder ({id: "xml:<file>", label, name, local}),
+  // read by the desktop app a chapter at a time like the online ones, but with no key.
+  let localBibles = [];
+  const translationById = id => translationsData.find(t => t.id === id) || localBibles.find(t => t.id === id);
+  // Loaded a chapter at a time through the desktop app: online, or an XML bible.
+  const isOnline = id => { const tr = translationById(id); return !!(tr && (tr.online || tr.local)); };
+  function translationAvailable(tr) {
+    if (tr.local) return inDesktopApp && localBibles.includes(tr);
+    if (!tr.online) return true;
+    if (!inDesktopApp) return false;
+    return onlineReady ? onlineKeys[tr.online] : true;   // until the app answers, assume yes
+  }
+
+  function chapterShell(id) {
+    const layout = layoutChapters.get(id);
+    const el = layout.cloneNode(false);
+    el.appendChild(layout.querySelector(".chapter-head").cloneNode(true));
+    return el;
+  }
+
+  // The chapter to put in the page for the current translation (a copy), trimmed to the
+  // verses a schedule row asks for.
+  function chapterNode(id) {
+    const node = fullChapterNode(id);
+    return node && !node.classList.contains("chapter-pending") ? applyVerseFilter(node, id) : node;
+  }
+
+  // --- PART OF A CHAPTER ---
+  // In reading mode, a schedule row may ask for only some verses ("Psalm 119:33-72"); the
+  // chapter then shows just those, with a note and a way to show the rest.
+  let verseFilter = new Map();   // chapterId -> [[from, to], ...] (sorted, merged)
+
+  function mergeRanges(ranges) {
+    const sorted = ranges.map(r => r.slice()).sort((x, y) => x[0] - y[0]);
+    const out = [];
+    for (const r of sorted) {
+      const last = out.at(-1);
+      if (last && r[0] <= last[1] + 1) last[1] = Math.max(last[1], r[1]); else out.push(r);
+    }
+    return out;
+  }
+
+  function applyVerseFilter(node, id) {
+    const ranges = loadMode === "reading" ? verseFilter.get(id) : null;
+    if (!ranges) return node;
+    const verses = [...node.querySelectorAll(":scope > .verse")];
+    const keep = p => ranges.some(([a, b]) => Number(p.dataset.v) >= a && Number(p.dataset.v) <= b);
+    // None of those verses exist, or all of them are asked for: show the chapter as it is.
+    if (!verses.some(keep) || verses.every(keep)) return node;
+    verses.forEach(p => { if (!keep(p)) p.remove(); });
+    const lastVerse = Number(verses.at(-1).dataset.v);
+    const label = ranges.map(([a, b]) => {
+      const end = Math.min(b, lastVerse);
+      return a === end ? `${a}` : `${a}–${end}`;
+    }).join(", ");
+    const note = document.createElement("div");
+    note.className = "verse-range-note";
+    const text = document.createElement("span");
+    text.textContent = `${/[–,]/.test(label) ? "Verses" : "Verse"} ${label} · `;
+    const all = document.createElement("button");
+    all.type = "button";
+    all.className = "link-btn";
+    all.dataset.showChapter = id;
+    all.textContent = "show the whole chapter";
+    note.append(text, all);
+    node.querySelector(".chapter-head").after(note);
+    node.classList.add("chapter-partial");
+    return node;
+  }
+
+  bibleContent.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-show-chapter]");
+    if (!btn) return;
+    const id = btn.dataset.showChapter;
+    verseFilter.delete(id);
+    renderChapters(loadedIds);
+    scrollToChapter(id);   // the start of the now-complete chapter
+  });
+
+  function fullChapterNode(id) {
+    const layout = layoutChapters.get(id);
+    if (!layout) return null;
+    if (!isOnline(currentTranslation)) return layout.cloneNode(true);
+    const key = `${currentTranslation}|${id}`;
+    const cached = remoteCache.get(key);
+    if (cached) {
+      remoteCache.delete(key);      // most recently used last
+      remoteCache.set(key, cached);
+      return cached.node.cloneNode(true);
+    }
+    const fail = failed.get(key);
+    if (fail && !fail.needsKey && !fail.missing && Date.now() - fail.at > RETRY_AFTER_MS) failed.delete(key);
+    requestChapter(currentTranslation, id);
+    return statusNode(id, failed.get(key));
+  }
+
+  function statusNode(id, fail) {
+    const el = chapterShell(id);
+    el.classList.add("chapter-pending");
+    const tr = translationById(currentTranslation);
+    const box = document.createElement("div");
+    box.className = "chapter-status";
+    if (!fail) {
+      box.textContent = tr.local ? `Loading ${tr.name}…` : `Loading the ${tr.label}…`;
+    } else {
+      const msg = document.createElement("div");
+      msg.className = "status-error";
+      msg.textContent = fail.error;
+      const actions = document.createElement("div");
+      actions.className = "status-actions";
+      const button = (label, action) => {
+        const b = document.createElement("button");
+        b.className = "text-btn";
+        b.type = "button";
+        b.dataset.statusAction = action;
+        b.textContent = label;
+        actions.appendChild(b);
+      };
+      // (a book or chapter the XML bible doesn't have: trying again won't help)
+      if (fail.needsKey) button("Open settings", "settings"); else if (!fail.missing) button("Try again", "retry");
+      button(`Show the ${translationsData[0].label} instead`, "local");
+      box.append(msg, actions);
+    }
+    el.appendChild(box);
+    return el;
+  }
+
+  bibleContent.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-status-action]");
+    if (!btn) return;
+    const action = btn.dataset.statusAction;
+    if (action === "settings") openKeySettings(translationById(currentTranslation)?.online);
+    else if (action === "local") setTranslation(translationsData[0].id);
+    else if (action === "retry") {
+      for (const id of loadedIds) failed.delete(`${currentTranslation}|${id}`);
+      refreshPendingChapters();
+    }
+  });
+
+  function requestChapter(trId, id) {
+    const key = `${trId}|${id}`;
+    if (remoteCache.has(key) || inflight.has(key) || failed.has(key)) return;
+    const api = appApi();
+    if (!api) {
+      // In the desktop app the API appears shortly after the page loads; requests wait
+      // for it (see onOnlineReady). In a plain browser there's nothing to ask.
+      if (!inDesktopApp) failed.set(key, { error: "Online translations work in the desktop app.", needsKey: true, at: Date.now() });
+      return;
+    }
+    const info = chapterInfo.get(id);
+    inflight.add(key);
+    Promise.resolve(api.get_chapter(trId, info.book.usfm, info.book.name, info.num))
+      .then(res => {
+        if (res && res.ok) {
+          remoteCache.set(key, {
+            node: buildChapter(id, res.verses), verseCount: res.verses.length,
+            fumsToken: res.fumsToken || null, copyright: res.copyright || "",
+          });
+          trimCache(trId);
+        } else {
+          failed.set(key, { error: (res && res.error) || "The chapter couldn't be loaded.", needsKey: !!(res && res.needsKey),
+                            missing: !!(res && res.missing), at: Date.now() });
+        }
+      })
+      .catch(err => failed.set(key, { error: `The chapter couldn't be loaded (${err && err.message || err}).`, at: Date.now() }))
+      .finally(() => {
+        inflight.delete(key);
+        if (trId === currentTranslation) chapterArrived(id);
+      });
+  }
+
+  // --- FOOTNOTES ---
+  // Markers come with the text (<sup class="fn" data-note="...">); clicking one shows the note.
+  function footnoteLabel(n) {
+    let s = "";
+    do { s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+    return s;
+  }
+  const fnPop = document.getElementById("fn-pop");
+  let fnOpen = null;
+  function closeFootnote() {
+    if (fnOpen) fnOpen.classList.remove("open");
+    fnOpen = null;
+    fnPop.hidden = true;
+  }
+  function openFootnote(fn) {
+    if (fnOpen === fn) { closeFootnote(); return; }
+    closeFootnote();
+    fnOpen = fn;
+    fn.classList.add("open");
+    const label = document.createElement("span");
+    label.className = "fn-pop-label";
+    label.textContent = fn.dataset.label || "";
+    fnPop.replaceChildren(label, fn.dataset.note || "");
+    fnPop.hidden = false;
+    // Below the marker (above it if there's no room), kept inside the window.
+    const r = fn.getBoundingClientRect();
+    const w = fnPop.offsetWidth, h = fnPop.offsetHeight;
+    const left = Math.max(8, Math.min(r.left - 12, window.innerWidth - w - 8));
+    const top = r.bottom + 6 + h < window.innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - h - 6);
+    fnPop.style.left = `${left}px`;
+    fnPop.style.top = `${top}px`;
+  }
+  bibleContent.addEventListener("click", (e) => {
+    const fn = e.target.closest(".fn");
+    if (fn && document.body.classList.contains("show-footnotes")) {
+      e.stopPropagation();
+      openFootnote(fn);
+    }
+  });
+  document.addEventListener("click", (e) => { if (fnOpen && !fnPop.contains(e.target)) closeFootnote(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && fnOpen) closeFootnote(); });
+  mainPane.addEventListener("scroll", () => { if (fnOpen) closeFootnote(); }, { passive: true });
+  window.addEventListener("resize", () => { if (fnOpen) closeFootnote(); });
+
+  // An XML bible renumbered to the KJV (tools/renumber_xml_bible.py) gives each verse its
+  // own number too ("22:1"): the text shows those, the page keeps working by the KJV's.
+  function parseOrig(label) {
+    const m = /^(\d+):(\d+)(?:-(?:(\d+):)?(\d+))?$/.exec(label || "");
+    return m ? { c: Number(m[1]), v: Number(m[2]), c2: Number(m[3] || m[1]), v2: m[4] ? Number(m[4]) : null } : null;
+  }
+
+  function buildChapter(id, verses) {
+    const el = chapterShell(id);
+    const info = chapterInfo.get(id);
+    const kjvNum = Number(info.num);
+    const ownChapters = [];
+    let prevOwn = null;
+    let footnotes = 0;
+    for (const [v, text, label] of verses) {
+      const orig = parseOrig(label);
+      if (orig) for (const c of [orig.c, orig.c2]) if (!ownChapters.includes(c)) ownChapters.push(c);
+      // Where the translation's own chapter changes partway through, say so ("115:1").
+      const newOwnChapter = orig && prevOwn !== null && orig.c !== prevOwn;
+      if (orig) prevOwn = orig.c2;
+      const p = document.createElement("p");
+      p.className = "verse";
+      p.dataset.v = v;
+      const num = document.createElement("span");
+      num.className = "verse-num";
+      num.textContent = !orig ? v
+        : newOwnChapter ? `${orig.c}:${orig.v}`
+        : orig.v2 == null ? orig.v
+        : orig.c2 === orig.c ? `${orig.v}–${orig.v2}` : orig.v;
+      if (orig && label !== `${kjvNum}:${v}`) {
+        num.title = `${info.book.barName || info.book.name} ${kjvNum}:${v} in the KJV; ${label.replace("-", "–")} in this translation`;
+      }
+      const span = document.createElement("span");
+      span.className = "verse-text";
+      span.innerHTML = text;   // escaped by bible_api.py / local_bibles.py; only <em>, small caps, "+" and footnote markup
+      // Footnote markers are lettered a, b, c ... through the chapter (shown by CSS).
+      span.querySelectorAll(".fn").forEach(fn => { fn.dataset.label = footnoteLabel(footnotes++); });
+      // A verse the translation leaves out, with only a footnote saying so.
+      if (!span.textContent.trim() && span.querySelector(".fn")) p.classList.add("note-only");
+      p.append(num, " ", span);
+      el.appendChild(p);
+    }
+    // This chapter is (or comes from) another chapter in the translation's own numbering.
+    ownChapters.sort((a, b) => a - b);
+    if (ownChapters.length && !(ownChapters.length === 1 && ownChapters[0] === kjvNum)) {
+      const note = document.createElement("div");
+      note.className = "verse-range-note orig-note";
+      const one = ownChapters.length === 1;
+      const list = one ? ownChapters[0]
+        : ownChapters.length === 2 && ownChapters[1] === ownChapters[0] + 1 ? `${ownChapters[0]}–${ownChapters[1]}`
+        : ownChapters.join(", ");
+      note.textContent = `${one ? info.book.barName || info.book.name : info.book.name} ${list} in this translation`;
+      note.title = "This translation numbers its chapters and verses differently; the verse numbers shown are its own.";
+      el.querySelector(".chapter-head").after(note);
+      el.dataset.ownNum = list;   // copied text is headed with the translation's own chapter
+    }
+    return el;
+  }
+
+  // Keep at most CACHE_VERSES verses per translation, dropping the least recently used
+  // chapters that aren't in the page.
+  function trimCache(trId) {
+    const entries = [...remoteCache].filter(([k]) => k.startsWith(`${trId}|`));
+    let total = entries.reduce((n, [, e]) => n + e.verseCount, 0);
+    for (const [k, e] of entries) {
+      if (total <= CACHE_VERSES) break;
+      if (trId === currentTranslation && loadedIds.includes(k.slice(trId.length + 1))) continue;
+      remoteCache.delete(k);
+      total -= e.verseCount;
+    }
+  }
+
+  // A fetch finished: swap its placeholder for the chapter (or the error), keeping the
+  // reader's place.
+  function chapterArrived(id) {
+    const old = bibleContent.querySelector(`.chapter-pending[id="${CSS.escape(id)}"]`);
+    if (!old) return;
+    const fresh = chapterNode(id);
+    if (!fresh) return;
+    if (old.querySelector(".chapter-head.merged")) fresh.querySelector(".chapter-head")?.classList.add("merged");
+    // The reader scrolled since switching translation: don't pull them back later.
+    if (pendingAnchor && Math.abs(mainPane.scrollTop - pendingAnchor.top) >= 2) pendingAnchor = null;
+    const keep = anchor;
+    old.replaceWith(fresh);
+    measureChapters();
+    if (pendingAnchor && pendingAnchor.anchor.chapterId === id && !fresh.classList.contains("chapter-pending")) {
+      restoreAnchor(pendingAnchor.anchor);   // the verse the reader was on before switching
+      pendingAnchor = null;
+    } else if (keep) {
+      restoreAnchor(keep);
+    }
+    if (pinned) pinned.top = mainPane.scrollTop;
+    anchor = captureAnchor() || keep;
+    updateActiveFromScroll();
+    onlineChaptersShown();
+    // Short chapters may leave too little to scroll: load more around them.
+    if (loadMode === "browse" && !draggingScrollbar) {
+      const k = anchor;
+      if (fillIfShort()) {
+        if (k) restoreAnchor(k);
+        if (pinned) pinned.top = mainPane.scrollTop;
+        anchor = captureAnchor() || k;
+      }
+    }
+    if (pendingAnchor) pendingAnchor.top = mainPane.scrollTop;
+  }
+
+  // Re-render placeholders (after a key was saved, or "Try again").
+  function refreshPendingChapters() {
+    bibleContent.querySelectorAll(".chapter-pending").forEach(el => {
+      const key = `${currentTranslation}|${el.id}`;
+      if (!failed.has(key) && !inflight.has(key)) {
+        requestChapter(currentTranslation, el.id);
+        chapterArrived(el.id);
+      }
+    });
+  }
+
+  // Report each online chapter once when it comes into the page (API.Bible's licence
+  // requires this usage reporting, "FUMS"), and show the translation's copyright notice.
+  function onlineChaptersShown() {
+    const now = new Set();
+    const tokens = [];
+    if (isOnline(currentTranslation)) {
+      for (const id of loadedIds) {
+        const key = `${currentTranslation}|${id}`;
+        const entry = remoteCache.get(key);
+        if (!entry || !bibleContent.querySelector(`.chapter[id="${CSS.escape(id)}"]:not(.chapter-pending)`)) continue;
+        now.add(key);
+        if (!shownKeys.has(key) && entry.fumsToken) tokens.push(entry.fumsToken);
+      }
+    }
+    shownKeys = now;
+    if (tokens.length && appApi()) {
+      try { appApi().report_fums(tokens); } catch { /* reporting never blocks reading */ }
+    }
+    updateCopyrightNote();
+  }
+
+  const copyrightNote = document.getElementById("copyright-note");
+  function updateCopyrightNote() {
+    let text = "";
+    if (isOnline(currentTranslation)) {
+      for (const [k, e] of remoteCache) if (k.startsWith(`${currentTranslation}|`) && e.copyright) { text = e.copyright; break; }
+    }
+    if (copyrightNote.textContent !== text) copyrightNote.textContent = text;
+    copyrightNote.hidden = !text;
+  }
+
+  // Browse window around chapter index i; grows past 2 each side if those chapters are so
+  // short there'd be nothing to scroll (so scrolling can still move to the next ones).
+  function browseRange(i, current = null) {
+    let lo = Math.max(0, i - BROWSE_RADIUS);
+    let hi = Math.min(allChapterIds.length - 1, i + BROWSE_RADIUS);
+    if (current) { lo = Math.min(lo, current[0]); hi = Math.max(hi, current[1]); }
+    return [lo, hi];
+  }
+
+  function fillIfShort() {
+    if (loadMode !== "browse" || !loadedIds.length || keyPageShown) return false;
+    let lo = chapterOrder.get(loadedIds[0]), hi = chapterOrder.get(loadedIds.at(-1));
+    let changed = false;
+    while (bibleContent.offsetHeight < mainPane.clientHeight * 2.5 && (lo > 0 || hi < allChapterIds.length - 1)) {
+      if (lo > 0) lo--;
+      if (hi < allChapterIds.length - 1) hi++;
+      renderChapters(allChapterIds.slice(lo, hi + 1));
+      changed = true;
+    }
+    return changed;
+  }
+
+  // Changing what's loaded can move the page under the reader, so while scrolling
+  // chapters are only added, and only when the reader is near the end of what's loaded;
+  // dropping chapters waits until scrolling pauses.
+  let shiftTimer = null;
+  function scheduleWindowShift() {
+    if (loadMode !== "browse" || draggingScrollbar) return;
+    clearTimeout(shiftTimer);
+    const nearEdge = mainPane.scrollTop < mainPane.clientHeight * 2 ||
+      mainPane.scrollTop + mainPane.clientHeight * 3 > mainPane.scrollHeight;
+    if (nearEdge) maybeShiftWindow(false);
+    shiftTimer = setTimeout(() => maybeShiftWindow(true), 300);
+  }
+
+  // While the reading pane's scrollbar is being dragged (or its track held down), nothing
+  // loads or unloads, so the text and the scrollbar stay put under the mouse; it catches
+  // up once the button is released. Wheel, keyboard and touchpad scrolling load as usual.
+  let draggingScrollbar = false;
+  mainPane.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const rect = mainPane.getBoundingClientRect();
+    // The vertical scrollbar is the strip right of the pane's content (client) area.
+    if (e.clientX >= rect.left + mainPane.clientLeft + mainPane.clientWidth) {
+      draggingScrollbar = true;
+      clearTimeout(shiftTimer);
+    }
+  });
+  function endScrollbarDrag() {
+    if (!draggingScrollbar) return;
+    draggingScrollbar = false;
+    // The drag's last scroll position lands just after the button is released, so catch
+    // up a couple of frames later, from where the reader actually ended up.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (draggingScrollbar) return;
+      anchor = captureAnchor() || anchor;
+      updateActiveFromScroll();
+      maybeShiftWindow(true);
+    }));
+  }
+  window.addEventListener("pointerup", endScrollbarDrag);
+  window.addEventListener("pointercancel", endScrollbarDrag);
+  window.addEventListener("blur", endScrollbarDrag);
+
+  function maybeShiftWindow(idle = true) {
+    if (loadMode !== "browse" || !loadedIds.length || draggingScrollbar || keyPageShown) return;
+    const i = chapterOrder.get(activeChapterId);
+    if (i === undefined) return;
+    const current = [chapterOrder.get(loadedIds[0]), chapterOrder.get(loadedIds.at(-1))];
+    const [lo, hi] = browseRange(i, idle ? null : current);
+    if (lo === current[0] && hi === current[1]) return;
+    const keep = anchor;
+    renderChapters(allChapterIds.slice(lo, hi + 1));
+    fillIfShort();
+    // Chapters added or removed above the reading position move the text; put it back.
+    if (keep) restoreAnchor(keep);
+    anchor = captureAnchor() || keep;
+    if (pinned) pinned.top = mainPane.scrollTop;
+  }
+
+  // Reflow (resize, font/width settings) -> re-measure and put the same verse back in place.
+  const reflowObserver = new ResizeObserver(() => {
+    if (!chapterEls.length) return;
+    measureChapters();
+    if (anchor) {
+      restoreAnchor(anchor);
+      if (pinned) pinned.top = mainPane.scrollTop;
+    }
+    updateActiveFromScroll();
+  });
+  reflowObserver.observe(bibleContent);
+  reflowObserver.observe(mainPane);
+
+  // Scroll so the chapter's number row is at the bar (the bar then shows "Book N").
+  function scrollToChapter(chapterId) {
+    if (keyPageShown) {
+      // No text yet: remember the chapter and show it in the bar and the navigation.
+      keyPageChapter = chapterId;
+      const info = chapterInfo.get(chapterId);
+      if (info) { setBar(info.book.id, info.num); setActive(chapterId); }
+      return;
+    }
+    const targetEl = document.getElementById(chapterId);
+    if (!targetEl) return;
+    const section = targetEl.parentElement;
+    const isFirst = section && section.querySelector(".chapter") === targetEl;
+    mainPane.scrollTop = Math.max(0, isFirst ? section.offsetTop : targetEl.offsetTop - dockTop);
+    pinned = { chapterId, top: mainPane.scrollTop };
+    anchor = captureAnchor();
+    updateActiveFromScroll();   // sets the bar and the highlighted chapter now (pinned to this chapter)
+  }
+
+  // Navigation on the left: switch to browsing around this chapter.
+  function navigateToChapter(bookId, chapterId) {
+    const i = chapterOrder.get(chapterId);
+    if (i === undefined) return;
+    loadMode = "browse";
+    verseFilter = new Map();
+    setReadingRow(null);
+    const [lo, hi] = browseRange(i);
+    renderChapters(allChapterIds.slice(lo, hi + 1));
+    fillIfShort();
+    scrollToChapter(chapterId);
+  }
+
+  // A schedule row: load the row's readings (all its links, in order) and nothing else,
+  // then jump to startChapterId (default: the first one, the Old Testament reading).
+  function rowChapterIds(row) {
+    return rowReadings(row).ids;
+  }
+
+  // The row's chapters in order, and which of them it reads only part of. A chapter that
+  // is read whole anywhere in the row is shown whole; several parts are combined.
+  function rowReadings(row) {
+    const ids = [], parts = new Map(), whole = new Set();
+    row.querySelectorAll(".schedule-link").forEach(link => {
+      const ranges = new Map();
+      (link.dataset.verses || "").split(" ").forEach(s => {
+        const m = s.match(/^(.+):(\d+)-(\d*)$/);
+        if (m) ranges.set(m[1], [Number(m[2]), m[3] ? Number(m[3]) : Infinity]);
+      });
+      (link.dataset.chapters || link.dataset.chapter).split(" ").forEach(id => {
+        if (!id) return;
+        if (!ids.includes(id)) ids.push(id);
+        if (ranges.has(id)) parts.set(id, [...(parts.get(id) || []), ranges.get(id)]);
+        else whole.add(id);
+      });
+    });
+    const filter = new Map();
+    for (const [id, list] of parts) if (!whole.has(id)) filter.set(id, mergeRanges(list));
+    return { ids, filter };
+  }
+
+  // The first verse a link starts at, when it starts partway into a chapter.
+  function linkStartVerse(link) {
+    const m = (link.dataset.verses || "").match(/^(\S+):(\d+)-/);
+    return m && m[1] === link.dataset.chapter ? Number(m[2]) : null;
+  }
+
+  function loadReadingRow(row, startChapterId = null, startVerse = null) {
+    const { ids, filter } = rowReadings(row);
+    if (!ids.length) return false;
+    loadMode = "reading";
+    verseFilter = filter;
+    setReadingRow(row);
+    renderChapters(ids);
+    const target = startChapterId && ids.includes(startChapterId) ? startChapterId : ids[0];
+    scrollToChapter(target);
+    // A reading that starts partway into a chapter shown with more of it (two parts of
+    // Psalm 119 in one row): go to its first verse.
+    const verseEl = startVerse && startChapterId === target
+      ? document.querySelector(`#${CSS.escape(target)} > .verse[data-v="${startVerse}"]`) : null;
+    if (verseEl && verseEl !== document.querySelector(`#${CSS.escape(target)} > .verse`)) {
+      mainPane.scrollTop = Math.max(0, verseEl.offsetTop - titleHeight - 6);
+      pinned = null;
+      anchor = captureAnchor();
+      updateActiveFromScroll();
+    }
+    return true;
+  }
+
+  // --- TRANSLATIONS ---
+
+  const translationToggle = document.getElementById("translation-toggle");
+  translationToggle.style.setProperty("--translation-count", translationsData.length);
+  translationsData.forEach(tr => {
+    const btn = document.createElement("button");
+    btn.className = "toggle-btn";
+    btn.textContent = tr.label;
+    btn.dataset.translation = tr.id;
+    // Without a key, an online translation shows a page for adding one where the text goes.
+    btn.addEventListener("click", () => setTranslation(tr.id));
+    translationToggle.appendChild(btn);
+  });
+
+  function refreshTranslationToggle() {
+    translationToggle.querySelectorAll(".toggle-btn").forEach(btn => {
+      const tr = translationById(btn.dataset.translation);
+      const available = translationAvailable(tr);
+      btn.classList.toggle("active", tr.id === currentTranslation);
+      btn.classList.toggle("unavailable", !available);
+      btn.title = available ? tr.name
+        : !inDesktopApp ? `${tr.name} (online translations work in the desktop app)`
+        : `${tr.name} (needs a free API key)`;
+    });
+    const isLocal = !!translationById(currentTranslation)?.local;
+    localBibleSelect.value = isLocal ? currentTranslation : "";
+    localBibleSelect.classList.toggle("active", isLocal);
+  }
+
+  // --- XML BIBLES (the dropdown under the buttons) ---
+  // Shown only when the Daily-Reading_bibles folder has at least one bible in it.
+  const localBibleRow = document.getElementById("local-bible-row");
+  const localBibleSelect = document.getElementById("local-bible-select");
+  localBibleSelect.addEventListener("change", () => {
+    if (localBibleSelect.value) setTranslation(localBibleSelect.value);
+    else refreshTranslationToggle();
+  });
+
+  function rebuildLocalBibleSelect() {
+    const placeholder = new Option("More translations…", "");
+    localBibleSelect.replaceChildren(placeholder, ...localBibles.map(b => new Option(b.name, b.id)));
+    localBibleRow.hidden = !localBibles.length;
+    refreshTranslationToggle();
+  }
+
+  // Read the folder (when the app is ready, and again when the window is focused, so bibles
+  // added or removed meanwhile show up). Returns whether the list changed.
+  async function refreshLocalBibles() {
+    const api = appApi();
+    if (!api || !api.list_local_bibles) return false;
+    let list;
+    try { list = await api.list_local_bibles(); } catch { return false; }
+    if (!Array.isArray(list)) return false;
+    const same = list.length === localBibles.length && list.every((b, i) => b.id === localBibles[i].id && b.name === localBibles[i].name);
+    if (same) return false;
+    localBibles = list.map(b => ({ id: b.id, label: b.name, name: b.name, local: true }));
+    const gone = k => k.startsWith("xml:") && !translationById(k.split("|")[0]);
+    for (const k of [...remoteCache.keys()]) if (gone(k)) remoteCache.delete(k);
+    for (const k of [...failed.keys()]) if (k.startsWith("xml:")) failed.delete(k);
+    rebuildLocalBibleSelect();
+    return true;
+  }
+
+  // The folder changed while the app was open: if the bible being read was removed, go back
+  // to the AV (it's still chosen if it comes back).
+  async function refreshLocalBiblesOnFocus() {
+    if (!(await refreshLocalBibles())) return;
+    const tr = translationById(currentTranslation);
+    const preferred = translationById(preferredTranslation);
+    if (!tr) {
+      setTranslation(translationsData[0].id, true, false);
+    } else if (preferred && preferred.local && preferred.id !== currentTranslation && currentTranslation === translationsData[0].id) {
+      setTranslation(preferred.id, true, false);
+    }
+  }
+
+  // The translation the reader picked last; an online one may have to wait for the app.
+  let preferredTranslation = storageGet(STORAGE.translation);
+
+  function setTranslation(id, keepPosition = true, remember = true) {
+    const tr = translationById(id) || translationsData[0];
+    if (!tr) return;
+    if (remember) {
+      preferredTranslation = tr.id;
+      storageSet(STORAGE.translation, tr.id);
+    }
+    if (tr.id === currentTranslation) return;
+
+    const keepAnchor = keepPosition ? (anchor || captureAnchor()) : null;
+    const keepPinned = pinned;
+    const fromKeyPage = keyPageShown ? keyPageChapter : null;
+
+    currentTranslation = tr.id;
+    shownKeys = new Set();
+    pendingAnchor = null;
+    // Same chapters, new translation.
+    if (loadedIds.length) renderChapters(loadedIds);
+
+    if (keyPageShown) {
+      // nothing to position
+    } else if (fromKeyPage) {
+      scrollToChapter(fromKeyPage);   // the chapter that was chosen while the key page showed
+    } else if (keepPinned) {
+      scrollToChapter(keepPinned.chapterId);
+    } else if (keepAnchor) {
+      restoreAnchor(keepAnchor);
+      anchor = captureAnchor();
+      // Its chapter is still loading: go back to the same verse when it arrives.
+      if (document.getElementById(keepAnchor.chapterId)?.classList.contains("chapter-pending") && !keepAnchor.fromTop) {
+        pendingAnchor = { anchor: keepAnchor, top: mainPane.scrollTop };
+      }
+      updateActiveFromScroll();
+    }
+    refreshTranslationToggle();
+  }
+
+  // --- API KEYS ---
+  // An online translation without a key shows this page where the text would be; the
+  // keys can also be replaced or removed in Settings > API keys.
+  const KEY_INFO = {
+    esv: {
+      what: "The English Standard Version is copyrighted, so Daily-Reading reads it chapter by chapter " +
+            "from Crossway's ESV API, using your own free API key.",
+      link: "https://api.esv.org/account/create-application/",
+      linkText: "Get a free ESV API key",
+      steps: "Sign in or create an account, create an application for non-commercial use, then copy " +
+             "its key (the letters and numbers after “Token”).",
+      placeholder: "Paste your ESV API key",
+    },
+    apibible: {
+      what: "The NASB and NIV are copyrighted, so Daily-Reading reads them chapter by chapter from " +
+            "API.Bible, using your own free API key. One key works for both.",
+      link: "https://api.bible/sign-up",
+      linkText: "Get a free API.Bible key",
+      steps: "Sign up, create an app, and include the NASB and NIV in it. Once the app is approved, " +
+             "copy its API key from your dashboard.",
+      placeholder: "Paste your API.Bible key",
+    },
+  };
+
+  function needsKeyPage(tr) {
+    return !!tr && !!tr.online && (!inDesktopApp || (onlineReady && !onlineKeys[tr.online]));
+  }
+
+  function buildKeyPage(tr) {
+    const info = KEY_INFO[tr.online];
+    const page = document.createElement("div");
+    page.className = "key-page";
+    const title = document.createElement("div");
+    title.className = "key-page-title";
+    title.textContent = tr.name;
+    const what = document.createElement("p");
+    what.textContent = `${info.what} The key is saved only on this computer.`;
+    const link = document.createElement("a");
+    link.href = info.link;
+    link.dataset.external = "";
+    link.className = "key-page-link";
+    link.textContent = `${info.linkText} →`;
+    const steps = document.createElement("p");
+    steps.className = "key-page-steps";
+    steps.textContent = info.steps;
+    page.append(title, what, link, steps);
+    if (inDesktopApp) {
+      const row = document.createElement("div");
+      row.className = "key-page-entry";
+      row.dataset.kind = tr.online;
+      const input = document.createElement("input");
+      input.type = "password";
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.placeholder = info.placeholder;
+      input.setAttribute("aria-label", info.placeholder);
+      const save = document.createElement("button");
+      save.className = "text-btn";
+      save.type = "button";
+      save.dataset.keyAction = "save";
+      save.textContent = "Save";
+      const status = document.createElement("p");
+      status.className = "key-status";
+      status.setAttribute("role", "status");
+      row.append(input, save, status);
+      // Or keep keys in a text file beside the app (bible_api.py reads it; it wins over saved keys).
+      const fileNote = document.createElement("p");
+      fileNote.className = "key-page-steps key-page-file";
+      const example = document.createElement("code");
+      example.textContent = tr.online === "esv" ? "ESV = your ESV key" : "API.Bible = your API.Bible key";
+      fileNote.append("Or put the key in a text file named ", Object.assign(document.createElement("code"), { textContent: "Daily-Reading_keys.txt" }),
+        " in the same folder as Daily-Reading.exe, on a line like ", example,
+        ". A key in that file is used instead of a saved one.");
+      page.append(row, fileNote);
+    } else {
+      const note = document.createElement("p");
+      note.className = "key-page-steps";
+      note.textContent = "Online translations work in the Daily-Reading desktop app.";
+      page.appendChild(note);
+    }
+    const back = document.createElement("button");
+    back.className = "text-btn key-page-back";
+    back.type = "button";
+    back.dataset.statusAction = "local";
+    back.textContent = `Show the ${translationsData[0].label} instead`;
+    page.appendChild(back);
+    return page;
+  }
+
+  // Links to the key sites open in the web browser (inside the app they'd replace the page).
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-external]");
+    if (!a) return;
+    e.preventDefault();
+    const api = appApi();
+    if (api && api.open_url) api.open_url(a.href);
+    else window.open(a.href, "_blank", "noopener");
+  });
+
+  const onlineSection = document.getElementById("online-section");
+
+  function refreshKeyRows() {
+    onlineSection.querySelectorAll(".key-row").forEach(row => {
+      const kind = row.dataset.kind;
+      const input = row.querySelector("input");
+      // A key from Daily-Reading_keys.txt (next to the app) is changed by editing that file.
+      const fromFile = !!(onlineKeys.fromFile && onlineKeys.fromFile[kind]);
+      input.disabled = !inDesktopApp || fromFile;
+      input.placeholder = !inDesktopApp ? "Desktop app only" : fromFile ? "From Daily-Reading_keys.txt"
+        : onlineKeys[kind] ? "Saved ✓ (paste to replace)" : "Paste your key";
+      input.title = fromFile ? "Edit or delete Daily-Reading_keys.txt next to the app to change this key" : "";
+      row.querySelector('[data-key-action="remove"]').hidden = !onlineKeys[kind] || fromFile;
+      row.querySelector('[data-key-action="save"]').disabled = !inDesktopApp || fromFile;
+    });
+  }
+
+  // Save / Remove, in Settings (.key-row) or on the key page (.key-page-entry).
+  async function onKeyAction(e) {
+    const btn = e.target.closest("[data-key-action]");
+    if (!btn) return;
+    const row = btn.closest(".key-row, .key-page-entry");
+    const kind = row.dataset.kind;
+    const input = row.querySelector("input");
+    const status = row.querySelector(".key-status");
+    const api = appApi();
+    if (!api) return;
+    const remove = btn.dataset.keyAction === "remove";
+    if (!remove && !input.value.trim()) { input.focus(); return; }
+    status.classList.remove("error");
+    status.textContent = remove ? "Removing…" : "Checking the key…";
+    row.querySelectorAll("button").forEach(b => b.disabled = true);
+    let res;
+    try { res = await api.set_api_key(kind, remove ? "" : input.value); }
+    catch (err) { res = { ok: false, message: String(err && err.message || err) }; }
+    row.querySelectorAll("button").forEach(b => b.disabled = false);
+    status.textContent = res.message || "";
+    status.classList.toggle("error", !res.ok);
+    if (!res.ok) return;
+    input.value = "";
+    if (res.status) Object.assign(onlineKeys, res.status);
+    onlineReady = true;
+    keysChanged(kind);
+  }
+  function onKeyEnter(e) {
+    if (e.key === "Enter" && e.target.matches(".key-row input, .key-page-entry input")) {
+      e.preventDefault();
+      e.target.parentElement.closest(".key-row, .key-page-entry").querySelector('[data-key-action="save"]').click();
+    }
+  }
+  onlineSection.addEventListener("click", onKeyAction);
+  onlineSection.addEventListener("keydown", onKeyEnter);
+  bibleContent.addEventListener("click", onKeyAction);
+  bibleContent.addEventListener("keydown", onKeyEnter);
+
+  function keysChanged(kind) {
+    // Forget results that depended on the old key.
+    for (const [k, f] of failed) if (translationById(k.split("|")[0])?.online === kind || f.needsKey) failed.delete(k);
+    if (!onlineKeys[kind]) {
+      for (const k of [...remoteCache.keys()]) if (translationById(k.split("|")[0])?.online === kind) remoteCache.delete(k);
+    }
+    refreshKeyRows();
+    refreshTranslationToggle();
+    if (translationById(currentTranslation)?.online !== kind) return;
+    if (keyPageShown || needsKeyPage(translationById(currentTranslation))) {
+      // Key added (show the text) or removed (show the key page), at the same chapter.
+      const target = keyPageShown ? keyPageChapter : activeChapterId;
+      renderChapters(loadedIds);
+      if (!keyPageShown && target) scrollToChapter(target);
+    } else {
+      refreshPendingChapters();
+    }
+  }
+
+  // Keys added or removed outside the app (Daily-Reading_keys.txt): noticed when the window
+  // is focused again.
+  async function refreshOnlineKeys() {
+    const api = appApi();
+    if (!api || !onlineReady) return;
+    let status;
+    try { status = await api.online_status(); } catch { return; }
+    if (!status) return;
+    const before = { ...onlineKeys, fromFile: { ...(onlineKeys.fromFile || {}) } };
+    Object.assign(onlineKeys, status);
+    for (const kind of ["esv", "apibible"]) {
+      if (before[kind] !== onlineKeys[kind] || (before.fromFile || {})[kind] !== (onlineKeys.fromFile || {})[kind]) keysChanged(kind);
+    }
+  }
+
+  // --- RESET (Settings > Reset) ---
+  const resetStatus = document.getElementById("reset-status");
+  function showResetStatus(text, isError = false) {
+    resetStatus.textContent = text;
+    resetStatus.classList.toggle("error", isError);
+    resetStatus.hidden = !text;
+  }
+  // Only the desktop app has an AppData folder.
+  document.getElementById("clear-appdata-row").hidden = !inDesktopApp;
+
+  // Reset all settings: delete the settings file (and what a browser kept), then start
+  // the page again with nothing saved, so every default applies.
+  document.getElementById("reset-everything").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (!armedClick(btn)) return;
+    const api = appApi();
+    settingsResetting = true;
+    clearTimeout(settingsSaveTimer);
+    if (api) {
+      let res;
+      try { res = await api.reset_settings(); } catch (err) { res = { ok: false, error: String(err && err.message || err) }; }
+      if (!res || !res.ok) {
+        settingsResetting = false;
+        showResetStatus((res && res.error) || "The settings couldn't be reset.", true);
+        return;
+      }
+    } else if (inDesktopApp) {
+      settingsResetting = false;
+      showResetStatus("The app isn't ready yet; try again in a moment.", true);
+      return;
+    }
+    // Earlier versions (and a plain browser) kept settings in the browser's storage.
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (/^(daily-reading|biblereading)-/.test(key)) localStorage.removeItem(key);
+      }
+    } catch { /* no storage */ }
+    // Reload with "settings=new" (the address otherwise still carries the old settings).
+    const params = new URLSearchParams(location.hash.slice(1));
+    if (params.has("settings")) params.set("settings", "new");
+    history.replaceState(null, "", `${location.pathname}${location.search}#${params.toString()}`);
+    location.reload();
+  });
+
+  // Delete app data: the Daily-Reading folder in AppData (keys saved in the app, etc.).
+  document.getElementById("clear-appdata").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (!armedClick(btn)) return;
+    btn.textContent = btn.dataset.label;
+    btn.classList.remove("armed");
+    delete btn.dataset.armed;
+    const api = appApi();
+    if (!api) { showResetStatus("The app isn't ready yet; try again in a moment.", true); return; }
+    let res;
+    try { res = await api.clear_app_data(); } catch (err) { res = { ok: false, error: String(err && err.message || err) }; }
+    if (!res || !res.ok) { showResetStatus((res && res.error) || "The app data couldn't be deleted.", true); return; }
+    showResetStatus(res.message || "Deleted.");
+    // Keys saved in the app are gone now: update the key boxes and translations.
+    await refreshOnlineKeys();
+    // If settings were being kept there, write them again (to the app folder if it can be).
+    saveSettingsFileSoon();
+  });
+
+  // The desktop app is ready: read which keys are saved, then load anything waiting.
+  async function onOnlineReady() {
+    const api = appApi();
+    if (!api) return;
+    try { Object.assign(onlineKeys, await api.online_status()); } catch { /* treat as no keys */ }
+    await refreshLocalBibles();   // so an XML bible chosen last time can be picked again
+    onlineReady = true;
+    refreshKeyRows();
+    refreshTranslationToggle();
+    const preferred = translationById(preferredTranslation);
+    if (!translationAvailable(translationById(currentTranslation))) {
+      setTranslation(translationsData[0].id, true, false);
+    } else if (preferred && preferred.id !== currentTranslation && translationAvailable(preferred)) {
+      setTranslation(preferred.id, true, false);
+    } else {
+      refreshPendingChapters();
+    }
+  }
+  if (appApi()) setTimeout(onOnlineReady); else window.addEventListener("pywebviewready", onOnlineReady);
+
+  // --- COPY ---
+  // Selected verses are copied one per line as "[N] Verse text"; a verse that is only
+  // partly selected keeps its number only if the selection includes the number.
+  // Crossing into a new chapter adds a "Book N" line. Works however the selection was
+  // made (dragging from the margin, triple-click, Ctrl+A inside the text, ...).
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  const isCopyItem = el => el.classList.contains("verse") || el.classList.contains("chapter-head");
+  function copyWalker() {
+    return document.createTreeWalker(bibleContent, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: el => isCopyItem(el) ? NodeFilter.FILTER_ACCEPT
+        : el.closest(".verse, .chapter-head") ? NodeFilter.FILTER_REJECT
+        : NodeFilter.FILTER_SKIP,
+    });
+  }
+
+  // First verse / chapter-head at or after the start of the range
+  function firstCopyItem(range) {
+    let node = range.startContainer;
+    if (node.nodeType !== 1) node = node.parentElement;
+    const inside = node.closest(".verse, .chapter-head");
+    if (inside && bibleContent.contains(inside)) return inside;
+    const walker = copyWalker();
+    let start = range.startContainer;
+    if (start.nodeType === 1 && range.startOffset < start.childNodes.length) {
+      start = start.childNodes[range.startOffset];
+      if (start.nodeType === 1 && bibleContent.contains(start) && isCopyItem(start)) return start;
+    }
+    if (!bibleContent.contains(start) && start !== bibleContent) {
+      // Range starts before the text (e.g. in main's padding): begin at the first item.
+      if (start.compareDocumentPosition(bibleContent) & Node.DOCUMENT_POSITION_FOLLOWING ||
+          start.contains(bibleContent)) {
+        walker.currentNode = bibleContent;
+        return walker.nextNode();
+      }
+      return null;
+    }
+    walker.currentNode = start;
+    return walker.nextNode();
+  }
+
+  function selectedText(range, el) {
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    if (range.compareBoundaryPoints(Range.START_TO_START, r) > 0) r.setStart(range.startContainer, range.startOffset);
+    if (range.compareBoundaryPoints(Range.END_TO_END, r) < 0) r.setEnd(range.endContainer, range.endOffset);
+    return r.collapsed ? "" : r.toString();
+  }
+
+  function buildCopyText(range) {
+    const lines = [];
+    let pendingChapter = null;   // written only once a verse of that chapter follows
+    const walker = copyWalker();
+    let item = firstCopyItem(range);
+    while (item && range.comparePoint(item, 0) <= 0) {
+      if (item.classList.contains("chapter-head")) {
+        if (range.intersectsNode(item)) {
+          const chapterEl = item.closest(".chapter");
+          const book = bookById.get(chapterEl.dataset.book);
+          pendingChapter = `${book ? book.barName : ""} ${chapterEl.dataset.ownNum || chapterEl.dataset.num}`.trim();
+        }
+      } else {
+        const numEl = item.querySelector(".verse-num");
+        const textEl = item.querySelector(".verse-text");
+        const hasNum = numEl && range.intersectsNode(numEl) && selectedText(range, numEl) !== "";
+        const text = textEl ? selectedText(range, textEl).replace(/\s+/g, " ").trim() : "";
+        if (text || hasNum) {
+          if (pendingChapter) {
+            if (lines.length) lines.push("");
+            lines.push(pendingChapter);
+            pendingChapter = null;
+          }
+          lines.push(hasNum ? `[${numEl.textContent}] ${text}` : text);
+        }
+      }
+      walker.currentNode = item;
+      item = walker.nextNode();
+    }
+    return lines.length ? lines : null;
+  }
+
+  document.addEventListener("copy", (e) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!range.intersectsNode(bibleContent)) return;
+
+    const lines = buildCopyText(range);
+    if (!lines) return;
+    // Copyrighted translations are quoted with their name, as their publishers ask: "(ESV)".
+    if (isOnline(currentTranslation)) {
+      const label = `(${translationById(currentTranslation).label})`;
+      if (lines.length === 1) lines[0] += ` ${label}`; else lines.push(label);
+    }
+    // A selection inside a single verse's text copies as plain text (no number added).
+    e.clipboardData.setData("text/plain", lines.join("\n"));
+    e.clipboardData.setData("text/html", lines.map(l => l ? `<p>${escapeHtml(l)}</p>` : "<br>").join(""));
+    e.preventDefault();
+  });
+
+  // --- READING SCHEDULES ---
+  // The built-in schedule (schedule.md, embedded when the page is built) and the .md files
+  // in the Daily-Reading_schedules folder next to the app are all read here, the same way.
+  //
+  //   ---                          optional settings block
+  //   name: My plan
+  //   mode: weekly | monthly | yearly | dated | checklist
+  //   start: 2027-01-04            dated: the first reading's date; also yearly ones like
+  //                                12-01, Dec 1, Ash Wednesday, Palm Sunday, Easter-7
+  //   days: weekdays | daily       dated: one reading per weekday, or per day
+  //   ---
+  //   ## Week 1                    "##" headings group the readings (weeks or sections)
+  //   | Done | Old Testament | New Testament |
+  //   |------|---------------|---------------|
+  //   | [ ]  | Genesis 1-2   | Matthew 1     |
+  //
+  // Checkboxes ("[ ]" / "[x]") can be a column of their own (one per day) or go before a
+  // reading in a cell ("[x] Genesis 1-2"). Ticking one in the app changes just that
+  // character in the file (schedules.py).
+  //   weekly:    like the built-in schedule: "## Week N" is week N of the year (weeks start on
+  //              Sunday); rows are Monday-Friday (Saturday shows Friday's, Sunday Monday's),
+  //              or Sunday-Saturday when a week has 7 rows.
+  //   monthly:   row N is day N of the month (the last row for later days).
+  //   yearly:    row N is day N of the year (February 29 repeats February 28).
+  //   dated:     the first row is the start date; then one row per weekday or per day.
+  //   checklist: "today" is the first day not ticked off.
+
+  const BUILT_IN_SCHEDULE = "built-in";
+  const BUILT_IN_NAME = "Weekday Yearly";   // schedule.md: weekday readings through the year
+  const STORAGE_SCHEDULE = "daily-reading-schedule";
+  const scheduleSelect = document.getElementById("schedule-select");
+  const scheduleStatus = document.getElementById("schedule-status");
+  const scheduleTables = document.getElementById("schedule-tables");
+  const weekPickerSection = document.getElementById("week-picker-section");
+  const weekPickerLabel = document.getElementById("week-picker-label");
+  const todayBtn = document.getElementById("today-btn");
+
+  // ---- Bible references: "Genesis 1-2", "Psalm 23, 24", "Jude", "1 Cor 13", "John 3:16-21" ----
+  const BOOK_ABBREVIATIONS = {
+    "genesis": "gen|ge|gn", "exodus": "exod|exo|ex", "leviticus": "lev|le|lv", "numbers": "num|nu|nm|nb",
+    "deuteronomy": "deut|deu|dt", "joshua": "josh|jos|jsh", "judges": "judg|jdg|jg|jdgs", "ruth": "rth|ru",
+    "1-samuel": "1 sam|1 sa|1 sm", "2-samuel": "2 sam|2 sa|2 sm", "1-kings": "1 kgs|1 ki|1 kin",
+    "2-kings": "2 kgs|2 ki|2 kin", "1-chronicles": "1 chron|1 chr|1 ch", "2-chronicles": "2 chron|2 chr|2 ch",
+    "ezra": "ezr", "nehemiah": "neh|ne", "esther": "esth|est|es", "job": "jb",
+    "psalms": "ps|psa|pss|psm|pslm", "proverbs": "prov|pro|prv|pr", "ecclesiastes": "eccles|eccl|ecc|ec|qoh",
+    "song-of-solomon": "song|sos|sng|cant|song of sol", "isaiah": "isa|is", "jeremiah": "jer|je|jr",
+    "lamentations": "lam|la", "ezekiel": "ezek|eze|ezk", "daniel": "dan|da|dn", "hosea": "hos|ho",
+    "joel": "jl", "amos": "am", "obadiah": "obad|ob", "jonah": "jnh|jon", "micah": "mic|mc", "nahum": "nah|na",
+    "habakkuk": "hab|hb", "zephaniah": "zeph|zep|zp", "haggai": "hag|hg", "zechariah": "zech|zec|zc",
+    "malachi": "mal|ml", "matthew": "matt|mt", "mark": "mrk|mk|mr", "luke": "luk|lk", "john": "joh|jhn|jn",
+    "acts": "act|ac", "romans": "rom|ro|rm", "1-corinthians": "1 cor|1 co", "2-corinthians": "2 cor|2 co",
+    "galatians": "gal|ga", "ephesians": "eph|ephes", "philippians": "phil|php|pp", "colossians": "col",
+    "1-thessalonians": "1 thess|1 thes|1 th", "2-thessalonians": "2 thess|2 thes|2 th",
+    "1-timothy": "1 tim|1 ti", "2-timothy": "2 tim|2 ti", "titus": "tit", "philemon": "philem|phm|phlm",
+    "hebrews": "heb", "james": "jas|jm", "1-peter": "1 pet|1 pe|1 pt", "2-peter": "2 pet|2 pe|2 pt",
+    "1-john": "1 jn|1 jhn|1 joh", "2-john": "2 jn|2 jhn|2 joh", "3-john": "3 jn|3 jhn|3 joh",
+    "jude": "jud|jd", "revelation": "rev|re|rv|revelations",
+  };
+
+  // lower-case name -> { book, abbrev }. Full names may stand alone (a whole book, like
+  // "Jude"); abbreviations need a chapter after them.
+  const bookNames = (() => {
+    const map = new Map();
+    const add = (name, book, abbrev) => { const k = name.toLowerCase(); if (book && !map.has(k)) map.set(k, { book, abbrev }); };
+    booksData.forEach(b => add(b.name, b, false));
+    add("psalm", bookById.get("psalms"), false);
+    add("song of songs", bookById.get("song-of-solomon"), false);
+    for (const [id, list] of Object.entries(BOOK_ABBREVIATIONS)) list.split("|").forEach(a => add(a, bookById.get(id), true));
+    // "1 Samuel" can also be written "1Samuel", "I Samuel" or "1st Samuel"
+    for (const [name, v] of [...map]) {
+      const m = name.match(/^([123]) (.+)$/);
+      if (!m) continue;
+      const n = Number(m[1]) - 1;
+      add(m[1] + m[2], v.book, v.abbrev);
+      add(`${["i", "ii", "iii"][n]} ${m[2]}`, v.book, v.abbrev);
+      add(`${["1st", "2nd", "3rd"][n]} ${m[2]}`, v.book, v.abbrev);
+    }
+    return map;
+  })();
+  const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const CHAPTER_TOKEN = String.raw`\d+(?::\d+)?(?:\s*[-–—]\s*\d+(?::\d+)?)?`;
+  const refPattern = new RegExp(
+    String.raw`(?<![\w])(` + [...bookNames.keys()].sort((a, b) => b.length - a.length)
+      .map(n => escapeRe(n).replace(/ /g, String.raw`\s+`)).join("|") +
+    String.raw`)\.?(?![\w])(?:\s*(` + CHAPTER_TOKEN + String.raw`(?:\s*,\s*` + CHAPTER_TOKEN + String.raw`)*))?`, "gi");
+
+  // The chapters one token of a reference covers, and which verses of them:
+  //   [{ id, from, to }]   from/to null = the whole chapter; to Infinity = to its end.
+  //   "3" -> 3 | "3-5" -> 3, 4, 5 | "3:16" | "3:16-21" | "1:5-2:3" -> 1 from 5, 2 to 3
+  //   "John 3:16, 18-20": after a verse, plain numbers are more verses of that chapter.
+  //   One-chapter books: "Jude 3-4" are verses ("Jude 1" is the whole book).
+  function chapterSegments(book, token, verseChapter) {
+    const m = token.match(/^(\d+)(?::(\d+))?(?:\s*[-–—]\s*(\d+)(?::(\d+))?)?$/);
+    if (!m) return [];
+    const n = x => (x === undefined ? undefined : Number(x));
+    const [a, av, b, bv] = [n(m[1]), n(m[2]), n(m[3]), n(m[4])];
+    const idOf = num => book.chapters.find(c => Number(c.num) === num)?.id;
+    const one = (num, from, to) => (idOf(num) ? [{ id: idOf(num), from, to }] : []);
+    if (verseChapter !== null && av === undefined) return one(verseChapter, a, bv === undefined && b !== undefined ? b : a);
+    if (book.chapters.length === 1 && av === undefined && bv === undefined && !(a === 1 && b === undefined)) {
+      return one(1, a, b === undefined ? a : b);
+    }
+    if (b === undefined) return av === undefined ? one(a, null, null) : one(a, av, av);
+    if (av !== undefined && bv === undefined) return one(a, av, b);          // 3:16-21
+    const out = [];                                                         // 3-5, 1:5-2:3, 3-4:5
+    for (const c of book.chapters) {
+      const num = Number(c.num);
+      if (num < a || num > b) continue;
+      const from = num === a && av !== undefined && av > 1 ? av : null;
+      const to = num === b && bv !== undefined ? bv : null;
+      out.push(from === null && to === null ? { id: c.id, from: null, to: null }
+        : { id: c.id, from: from ?? 1, to: to ?? Infinity });
+    }
+    return out;
+  }
+
+  // After a token with verses, the chapter later bare numbers belong to ("3:16, 18").
+  function verseContext(token, previous) {
+    const m = token.match(/^(\d+)(?::\d+)?(?:\s*[-–—]\s*(\d+)(:\d+)?)?$/);
+    if (!m) return null;
+    if (m[3]) return Number(m[2]);              // 1:5-2:3 -> chapter 2
+    if (token.includes(":")) return Number(m[1]);
+    return previous;                            // a plain number keeps the context it was in
+  }
+
+  // Text -> parts: {type: "text", text} and {type: "link", label, ids}
+  function linkReferences(text, parts, problems) {
+    let pos = 0;
+    for (const m of text.matchAll(refPattern)) {
+      const entry = bookNames.get(m[1].toLowerCase().replace(/\s+/g, " "));
+      const chapters = m[2];
+      if (!entry || (!chapters && entry.abbrev)) continue;
+      if (m.index > pos) parts.push({ type: "text", text: text.slice(pos, m.index) });
+      pos = m.index + m[0].length;
+      const { book } = entry;
+      if (!chapters) {   // a whole book, e.g. "Jude"
+        parts.push({ type: "link", label: m[1], ids: book.chapters.map(c => c.id) });
+        continue;
+      }
+      const prefix = m[0].slice(0, m[0].length - chapters.length);
+      const tokens = chapters.split(/(\s*,\s*)/);
+      let verseChapter = null;
+      tokens.forEach((token, i) => {
+        if (i % 2 === 1) { parts.push({ type: "text", text: token }); return; }
+        const segments = chapterSegments(book, token, verseChapter);
+        const label = i === 0 ? prefix + token : token;
+        if (segments.length) {
+          parts.push({ type: "link", label, ids: segments.map(s => s.id), ranges: segments.filter(s => s.from !== null) });
+        } else {
+          parts.push({ type: "text", text: label });
+          problems.push(`${book.name} ${token} isn't in the text`);
+        }
+        verseChapter = verseContext(token, verseChapter);
+      });
+    }
+    if (pos < text.length) parts.push({ type: "text", text: text.slice(pos) });
+  }
+
+  const CHECKBOX_RE = /(\[(?: |x|X)\])/;
+  function parseCell(text, problems) {
+    const parts = [];
+    let ordinal = 0;
+    for (const seg of text.split(CHECKBOX_RE)) {
+      if (!seg) continue;
+      const box = seg.match(/^\[( |x|X)\]$/);
+      if (box) parts.push({ type: "check", ordinal: ordinal++, checked: box[1] !== " " });
+      else linkReferences(seg, parts, problems);
+    }
+    // Anything left that isn't a reference, punctuation or a joining word (reported only for
+    // columns of readings; a column of day numbers or dates is just labels)
+    const leftover = parts.filter(p => p.type === "text").map(p => p.text).join(" ")
+      .replace(/\b(and|or|then)\b|[\s;,.&+()\-–—]/gi, "");
+    parts.unread = leftover ? parts.filter(p => p.type === "text").map(p => p.text).join("").trim() : "";
+    return parts;
+  }
+
+  // ---- Markdown -> schedule ----
+  const DONE_HEADER = /^(done|✓|✔|☑|✅|check|checked|complete|completed|read|status)$/i;
+  const isSeparatorRow = t => /^\|?[\s|:-]*-[\s|:-]*$/.test(t) && t.includes("|");
+  function splitCells(line) {
+    let t = line.trim();
+    if (t.startsWith("|")) t = t.slice(1);
+    if (t.endsWith("|") && t.length) t = t.slice(0, -1);
+    return t.split("|");
+  }
+
+  // A "mode:" setting -> weekly | monthly | yearly | dated | checklist, "" if not set,
+  // null if it isn't one of them.
+  function normalizeMode(value) {
+    const m = (value || "").toLowerCase().trim();
+    return !m ? ""
+      : /^(weekly|week|weeks|week of year|week of the year)$/.test(m) ? "weekly"
+      : /^(dated|date|dates|by date|start date|calendar|daily)$/.test(m) ? "dated"
+      : /^(checklist|checkbox|checkboxes|progress|checked)$/.test(m) ? "checklist"
+      : /^(monthly|month|day of month|day of the month)$/.test(m) ? "monthly"
+      : /^(yearly|year|annual|day of year|day of the year)$/.test(m) ? "yearly"
+      : null;
+  }
+  // The mode a schedule uses: its setting, or without one, dated if it has a start date,
+  // a checklist if it has checkboxes, otherwise weekly (like the built-in schedule).
+  function effectiveMode(mode, hasStart, hasChecks) {
+    if (mode === "dated" && !hasStart) return "weekly";
+    return mode || (hasStart ? "dated" : hasChecks ? "checklist" : "weekly");
+  }
+
+  function parseSchedule(text, fallbackName) {
+    const lines = text.split(/\r\n|\n|\r/);
+    const settings = {};
+    const warnings = [];
+    let i = 0;
+    if (lines[0] && lines[0].trim() === "---") {
+      for (i = 1; i < lines.length && lines[i].trim() !== "---"; i++) {
+        const m = lines[i].match(/^\s*([A-Za-z][A-Za-z ]*?)\s*:\s*(.*?)\s*$/);
+        if (m) settings[m[1].toLowerCase()] = m[2].replace(/^["']|["']$/g, "");
+      }
+      i++;
+    }
+    const groups = [];
+    let group = null, title = null, inComment = false;
+    const newGroup = (heading) => {
+      const week = heading.match(/^week\s+(\d+)\b/i);
+      group = { title: heading, week: week ? Number(week[1]) : null, headers: [], rows: [] };
+      groups.push(group);
+      return group;
+    };
+    for (; i < lines.length; i++) {
+      let line = lines[i];
+      // <!-- comments --> are ignored (they can explain the file to whoever edits it)
+      if (inComment) {
+        const end = line.indexOf("-->");
+        if (end < 0) continue;
+        inComment = false;
+        line = " ".repeat(end + 3) + line.slice(end + 3);
+      }
+      for (let s = line.indexOf("<!--"); s >= 0; s = line.indexOf("<!--")) {
+        const e = line.indexOf("-->", s + 4);
+        if (e < 0) { line = line.slice(0, s); inComment = true; break; }
+        line = line.slice(0, s) + " ".repeat(e + 3 - s) + line.slice(e + 3);
+      }
+      const t = line.trim();
+      if (!t) continue;
+      let m;
+      if ((m = t.match(/^#\s+(.+?)\s*#*$/))) { if (title === null) title = m[1]; continue; }
+      if ((m = t.match(/^#{2,6}\s+(.+?)\s*#*$/))) { newGroup(m[1]); continue; }
+      if (!t.startsWith("|")) continue;
+      if (isSeparatorRow(t)) continue;
+      const cells = splitCells(lines[i]).map(c => c.trim());
+      const next = (lines[i + 1] || "").trim();
+      if (isSeparatorRow(next)) {
+        // A header row. A second table under one heading gets its own block.
+        if (!group || group.rows.length) newGroup(group ? group.title : "");
+        group.headers = cells;
+        i++;
+        continue;
+      }
+      if (!group) newGroup("");
+      group.rows.push({ line: i + 1, raw: lines[i], texts: cells });
+    }
+
+    // Cells -> readings and checkboxes
+    let checkable = false;
+    groups.forEach((g, gi) => {
+      const where = g.title || `table ${gi + 1}`;
+      // The "Done" column: its header says so, or every cell in it is just a checkbox.
+      let doneCol = g.headers.findIndex(h => DONE_HEADER.test(h));
+      if (doneCol < 0 && g.rows.length) {
+        const width = Math.max(...g.rows.map(r => r.texts.length));
+        for (let c = 0; c < width && doneCol < 0; c++) {
+          const col = g.rows.map(r => r.texts[c] || "");
+          if (col.some(x => x) && col.every(x => !x || /^\[( |x|X)\]$/.test(x))) doneCol = c;
+        }
+      }
+      g.doneCol = doneCol;
+      g.rows.forEach(row => { row.problems = []; row.cells = row.texts.map(txt => parseCell(txt, row.problems)); });
+      const readingCols = new Set();
+      g.rows.forEach(row => row.cells.forEach((parts, c) => { if (parts.some(p => p.type === "link")) readingCols.add(c); }));
+      g.rows.forEach((row, ri) => {
+        const problems = row.problems;
+        row.cells.forEach((parts, c) => { if (parts.unread && readingCols.has(c)) problems.push(`couldn't read “${parts.unread}”`); });
+        row.checks = [];
+        row.cells.forEach((parts, c) => parts.forEach(p => {
+          if (p.type === "check") row.checks.push({ cell: c, ordinal: p.ordinal, checked: p.checked, isDay: c === doneCol });
+        }));
+        const dayCheck = row.checks.find(k => k.isDay);
+        row.done = dayCheck ? dayCheck.checked : row.checks.length ? row.checks.every(k => k.checked) : null;
+        if (row.checks.length) checkable = true;
+        row.ids = [];
+        row.cells.forEach(parts => parts.forEach(p => {
+          if (p.type === "link") p.ids.forEach(id => { if (!row.ids.includes(id)) row.ids.push(id); });
+        }));
+        problems.forEach(p => warnings.push(`${where}, row ${ri + 1}: ${p}`));
+      });
+    });
+    const rows = groups.flatMap((g, gi) => g.rows.map((row, ri) => ({ g: gi, r: ri, row })));
+    if (!rows.length) warnings.push("No readings were found (readings go in a Markdown table).");
+
+    // Settings
+    const norm = s => (s || "").toLowerCase().trim();
+    let mode = normalizeMode(settings.mode);
+    if (mode === null) {
+      warnings.push(`unknown mode “${settings.mode}” (use weekly, monthly, yearly, dated or checklist)`);
+      mode = "";
+    }
+    let start = null, startRule = null;
+    if (settings.start) {
+      const parsed = parseStart(settings.start);
+      if (parsed && parsed.fixed) start = parsed.fixed;
+      else if (parsed) startRule = parsed.rule;
+      else warnings.push(`start “${settings.start}” isn't a date (use e.g. 2027-01-04, 12-01, Dec 1, Easter, Easter-7, Ash Wednesday or Palm Sunday)`);
+    }
+    let days = norm(settings.days);
+    days = !days || /^(weekdays?|mon-fri|monday-friday|5)$/.test(days) ? "weekdays"
+      : /^(daily|every ?day|all|7|all days)$/.test(days) ? "daily"
+      : (warnings.push(`unknown days “${settings.days}” (use weekdays or daily)`), "weekdays");
+    const hasStart = !!(start || startRule);
+    if (mode === "dated" && !hasStart) warnings.push("mode is dated but there's no start date");
+    mode = effectiveMode(mode, hasStart, checkable);
+    // Weekly: "## Week N" headings say which week of the year each group is.
+    groups.forEach((g, gi) => { g.weekNum = groups.every(x => x.week !== null) ? g.week : gi + 1; });
+
+    return { name: settings.name || title || fallbackName, mode, start, startRule, days, groups, rows, checkable, warnings, lines };
+  }
+
+  // ---- which reading is "today" ----
+  function getSundayWeekOfYear(date = new Date()) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() + (3 - d.getDay()));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+  function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function daysBetween(a, b) { return Math.round((startOfDay(b) - startOfDay(a)) / 86400000); }
+  function weekdaysBetween(a, b) {   // Monday-Friday days from a (included) to b (not included)
+    let n = 0;
+    for (let d = startOfDay(a); d < startOfDay(b); d.setDate(d.getDate() + 1)) if (d.getDay() % 6 !== 0) n++;
+    return n;
+  }
+  function addDays(d, n) { const x = startOfDay(d); x.setDate(x.getDate() + n); return x; }
+
+  // ---- start dates (dated schedules) ----
+  //   "2027-01-04"            that date, once
+  //   "12-01", "Dec 1"        that day every year
+  //   "Easter", "Easter-7", "Ash Wednesday", "Palm Sunday", "Good Friday", "Pentecost",
+  //   "Advent Sunday", ... (with "+N"/"-N" days if wanted): worked out for each year
+  // A yearly start uses the year whose plan is under way or comes next.
+  const MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const EASTER_OFFSETS = {
+    "easter": 0, "easter day": 0, "easter sunday": 0, "ash wednesday": -46, "palm sunday": -7,
+    "maundy thursday": -3, "holy thursday": -3, "good friday": -2, "holy saturday": -1,
+    "ascension": 39, "ascension day": 39, "pentecost": 49, "whitsunday": 49, "trinity sunday": 56,
+  };
+  function easterDate(y) {   // Western (Gregorian) Easter Sunday
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+    const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, month - 1, day);
+  }
+  function adventSunday(y) {   // the Sunday from November 27 to December 3
+    const d = new Date(y, 11, 3);
+    d.setDate(3 - d.getDay());
+    return d;
+  }
+  function parseStart(text) {
+    const t = text.trim().toLowerCase().replace(/\s+/g, " ");
+    let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return d.getMonth() === Number(m[2]) - 1 ? { fixed: d } : null;
+    }
+    let month = null, day = null;
+    if ((m = t.match(/^(\d{1,2})-(\d{1,2})$/))) { month = Number(m[1]) - 1; day = Number(m[2]); }
+    else if ((m = t.match(/^([a-z]{3})[a-z]*\.? (\d{1,2})$/))) { month = MONTH_NAMES.indexOf(m[1]); day = Number(m[2]); }
+    else if ((m = t.match(/^(\d{1,2}) ([a-z]{3})[a-z]*\.?$/))) { month = MONTH_NAMES.indexOf(m[2]); day = Number(m[1]); }
+    if (month !== null) {
+      if (month < 0 || month > 11 || day < 1 || day > new Date(2001, month + 1, 0).getDate()) return null;
+      return { rule: y => new Date(y, month, day) };
+    }
+    m = t.match(/^(.+?)(?: ?([+-]) ?(\d+))?$/);
+    const offset = m[2] ? (m[2] === "-" ? -1 : 1) * Number(m[3]) : 0;
+    if (m[1] in EASTER_OFFSETS) return { rule: y => addDays(easterDate(y), EASTER_OFFSETS[m[1]] + offset) };
+    if (/^(advent sunday|advent|first sunday of advent|advent 1)$/.test(m[1])) return { rule: y => addDays(adventSunday(y), offset) };
+    return null;
+  }
+
+  // The date of row i of a dated plan that starts on `start`.
+  function rowDate(start, i, days) {
+    let d = startOfDay(start);
+    if (days === "daily") return addDays(d, i);
+    while (d.getDay() % 6 === 0) d = addDays(d, 1);          // a weekend start begins on Monday
+    for (let n = 0; n < i; ) { d = addDays(d, 1); if (d.getDay() % 6 !== 0) n++; }
+    return d;
+  }
+  // The start date in use: a fixed one, or this year's (or last/next year's) occurrence.
+  function planStart(s, today = new Date()) {
+    if (s.start) return s.start;
+    if (!s.startRule) return null;
+    const y = today.getFullYear();
+    for (const year of [y - 1, y, y + 1]) {
+      const st = s.startRule(year);
+      if (startOfDay(today) <= rowDate(st, s.rows.length - 1, s.days)) return st;
+    }
+    return s.startRule(y + 1);
+  }
+  // Row index for today in a dated plan (may be < 0 before the start or past the end).
+  function datedIndex(s, today, start) {
+    if (startOfDay(today) < startOfDay(start)) return -1;
+    if (s.days === "daily") return daysBetween(start, today);
+    // Weekends have no reading: Saturday shows Friday's, Sunday the coming Monday's.
+    let i = weekdaysBetween(start, today);
+    if (today.getDay() === 6) i -= 1;
+    return Math.max(0, i);
+  }
+  function formatDate(d) {
+    return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  // { g, r } of today's reading in the schedule
+  function todaysPlace(s) {
+    if (!s.rows.length) return null;
+    const today = new Date();
+    if (s.mode === "checklist") {
+      const next = s.rows.find(x => x.row.done === false);
+      return next || (s.rows.some(x => x.row.done !== null) ? s.rows.at(-1) : s.rows[0]);
+    }
+    if (s.mode === "monthly") {
+      // Row N is day N of the month; a month longer than the plan repeats its last day
+      // (the Psalter's 30 days: the 31st reads day 30 again).
+      return s.rows[Math.min(today.getDate(), s.rows.length) - 1];
+    }
+    if (s.mode === "yearly") {
+      // Row N is day N of the year, counted as in a 365-day year: in a leap year
+      // February 29 repeats February 28's reading and the rest of the year keeps its dates.
+      const y = today.getFullYear();
+      let i = daysBetween(new Date(y, 0, 1), today);
+      const leap = new Date(y, 1, 29).getMonth() === 1;
+      if (leap && i >= 59) i -= 1;
+      return s.rows[Math.max(0, Math.min(s.rows.length - 1, i))];
+    }
+    if (s.mode === "dated") {
+      // Before the start: the first day (to look ahead); after the end: the last.
+      const i = datedIndex(s, today, planStart(s, today));
+      return s.rows[Math.max(0, Math.min(s.rows.length - 1, i))];
+    }
+    // weekly
+    const week = getSundayWeekOfYear(today);
+    let gi = s.groups.findIndex(g => g.weekNum === week);
+    if (gi < 0) gi = s.groups.length - 1;
+    while (gi > 0 && !s.groups[gi].rows.length) gi--;
+    const rows = s.groups[gi].rows;
+    const day = today.getDay();   // 0 = Sunday ... 6 = Saturday
+    const r = rows.length >= 7 ? day : day === 0 ? 0 : day === 6 ? rows.length - 1 : day - 1;
+    return rows.length ? { g: gi, r: Math.max(0, Math.min(rows.length - 1, r)) } : null;
+  }
+
+  // ---- drawing ----
+  let current = null;        // { id, name, sched, mtime }
+  let activeGroup = 0;
+  let readingPlace = null;   // { g, r } of the row whose readings are loaded
+
+  function rowElement(place) {
+    return place ? scheduleTables.querySelector(`tr[data-g="${place.g}"][data-r="${place.r}"]`) : null;
+  }
+
+  function renderParts(td, parts, row) {
+    let holder = td;
+    for (const p of parts) {
+      if (p.type === "check") {
+        // A checkbox before a reading: it and the reading after it go together.
+        const isDay = row && td.classList.contains("check-cell");
+        if (!isDay) {
+          holder = document.createElement("span");
+          holder.className = "reading-item" + (p.checked ? " reading-done" : "");
+          td.appendChild(holder);
+        }
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.className = "schedule-check";
+        box.checked = p.checked;
+        box.dataset.cell = [...td.parentElement.children].indexOf(td);
+        box.dataset.ordinal = p.ordinal;
+        box.title = isDay ? "Mark this day as read" : "Mark this reading as read";
+        holder.appendChild(box);
+      } else if (p.type === "link") {
+        const a = document.createElement("a");
+        a.className = "schedule-link";
+        a.href = `#${p.ids[0]}`;
+        a.dataset.book = chapterInfo.get(p.ids[0]).book.id;
+        a.dataset.chapter = p.ids[0];
+        a.dataset.chapters = p.ids.join(" ");
+        // Only part of a chapter: "psalms-119:33-72" ("…:5-" = verse 5 to the end)
+        if (p.ranges && p.ranges.length) {
+          a.dataset.verses = p.ranges.map(r => `${r.id}:${r.from}-${r.to === Infinity ? "" : r.to}`).join(" ");
+        }
+        a.textContent = p.label;
+        holder.appendChild(a);
+      } else {
+        holder.appendChild(document.createTextNode(p.text));
+      }
+    }
+  }
+
+  function renderSchedule() {
+    const s = current.sched;
+    weekGrid.replaceChildren();
+    scheduleTables.replaceChildren();
+    // "## Week N" headings (or a weekly plan): numbered buttons. Other headings (months,
+    // books, "Days 1-10", ...): buttons with the heading's text. No headings: one list.
+    const weekly = s.groups.some(g => g.week !== null) || (s.mode === "weekly" && s.groups.every(g => !g.title));
+    weekGrid.classList.toggle("named", !weekly);
+    weekPickerLabel.textContent = weekly ? "Week" : "Section";
+    todayBtn.textContent = s.mode === "checklist" ? "Next" : "Today";
+    todayBtn.title = s.mode === "checklist" ? "Go to the first day not marked as read" : "Go to today's reading";
+    s.groups.forEach((g, gi) => {
+      const btn = document.createElement("button");
+      btn.className = "week-btn";
+      btn.textContent = weekly ? String(g.weekNum) : g.title || `Part ${gi + 1}`;
+      btn.title = g.title || `Section ${gi + 1}`;
+      btn.dataset.group = gi;
+      if (g.rows.length && g.rows.every(r => r.done === true)) btn.classList.add("done");
+      btn.addEventListener("click", () => setActiveGroup(gi));
+      weekGrid.appendChild(btn);
+
+      const block = document.createElement("div");
+      block.className = "week-block";
+      block.dataset.group = gi;
+      // Section heading, with "Mark all read / Clear" when the plan has several sections
+      // with checkboxes (one section: the plan's own buttons do the same).
+      const sectionBulk = canTick() && s.groups.length > 1 && g.rows.some(r => r.checks.length);
+      if (g.title || sectionBulk) {
+        const head = document.createElement("div");
+        head.className = "week-block-head";
+        const h2 = document.createElement("h2");
+        h2.textContent = g.title || `Section ${gi + 1}`;
+        head.appendChild(h2);
+        if (sectionBulk) head.appendChild(bulkButtons(gi));
+        block.appendChild(head);
+      }
+      const table = document.createElement("table");
+      const width = Math.max(g.headers.length, ...g.rows.map(r => r.cells.length));
+      if (g.headers.length) {
+        const tr = table.createTHead().insertRow();
+        for (let c = 0; c < width; c++) {
+          const th = document.createElement("th");
+          th.textContent = g.headers[c] || "";
+          if (c === g.doneCol) th.className = "check-cell";
+          tr.appendChild(th);
+        }
+      }
+      const tbody = table.createTBody();
+      g.rows.forEach((row, ri) => {
+        const tr = tbody.insertRow();
+        tr.dataset.g = gi;
+        tr.dataset.r = ri;
+        if (row.done === true) tr.classList.add("row-done");
+        for (let c = 0; c < width; c++) {
+          const td = tr.insertCell();
+          if (c === g.doneCol) td.className = "check-cell";
+          renderParts(td, row.cells[c] || [], row);
+        }
+      });
+      block.appendChild(table);
+      scheduleTables.appendChild(block);
+    });
+    weekPickerSection.hidden = s.groups.length <= 1;
+    if (s.groups.length === 1) scheduleTables.querySelector(".week-block")?.classList.add("active");
+    setActiveGroup(Math.min(activeGroup, Math.max(0, s.groups.length - 1)));
+    if (readingPlace) setReadingRow(rowElement(readingPlace));
+    renderScheduleStatus();
+  }
+
+  let statusMessage = null;   // { text, error } shown until the next schedule change
+  function renderScheduleStatus() {
+    const s = current.sched;
+    scheduleStatus.replaceChildren();
+    if (statusMessage) {
+      const span = document.createElement("span");
+      span.className = statusMessage.error ? "error" : "";
+      span.textContent = statusMessage.text + " ";
+      scheduleStatus.appendChild(span);
+    }
+    if (s.mode === "dated" && s.rows.length) {
+      const today = new Date(), start = planStart(s, today);
+      const end = rowDate(start, s.rows.length - 1, s.days);
+      const i = datedIndex(s, today, start);
+      const text = i < 0 ? `Begins ${formatDate(rowDate(start, 0, s.days))}`
+        : startOfDay(today) > end ? `Ended ${formatDate(end)}`
+        : `Day ${i + 1} of ${s.rows.length} · ends ${formatDate(end)}`;
+      const line = document.createElement("div");
+      line.textContent = text;
+      scheduleStatus.appendChild(line);
+    }
+    if (s.checkable) {
+      const marked = s.rows.filter(x => x.row.done !== null);
+      const done = marked.filter(x => x.row.done).length;
+      scheduleStatus.appendChild(document.createTextNode(`${done.toLocaleString()} of ${marked.length.toLocaleString()} read`));
+      if (canTick()) scheduleStatus.appendChild(bulkButtons("plan"));
+      const bar = document.createElement("div");
+      bar.className = "schedule-progress";
+      const fill = document.createElement("div");
+      fill.style.width = `${marked.length ? (100 * done / marked.length) : 0}%`;
+      bar.appendChild(fill);
+      scheduleStatus.appendChild(bar);
+    }
+    if (s.warnings.length) {
+      const warn = document.createElement("span");
+      warn.className = "warn";
+      warn.textContent = `${s.checkable || statusMessage ? " · " : ""}⚠ ${s.warnings.length} problem${s.warnings.length > 1 ? "s" : ""} in this schedule`;
+      warn.title = s.warnings.slice(0, 25).join("\n") + (s.warnings.length > 25 ? `\n… and ${s.warnings.length - 25} more` : "");
+      scheduleStatus.appendChild(warn);
+    }
+    scheduleStatus.hidden = !scheduleStatus.childNodes.length;
+  }
+
+  function setActiveGroup(gi) {
+    activeGroup = gi;
+    scheduleTables.querySelectorAll(".week-block").forEach(b => b.classList.toggle("active", Number(b.dataset.group) === gi));
+    weekGrid.querySelectorAll(".week-btn").forEach(b => b.classList.toggle("active", Number(b.dataset.group) === gi));
+  }
+
+  // The schedule row whose readings are loaded is highlighted (none while browsing).
+  function setReadingRow(row) {
+    readingRow = row;
+    readingPlace = row ? { g: Number(row.dataset.g), r: Number(row.dataset.r) } : null;
+    scheduleTables.querySelectorAll("tbody tr").forEach(tr => tr.classList.toggle("selected-row", tr === row));
+  }
+
+  // Clicking a row loads its readings, starting at the first; clicking a reading starts there.
+  scheduleTables.addEventListener("click", (e) => {
+    if (e.target.closest(".schedule-check")) return;
+    const link = e.target.closest(".schedule-link");
+    const row = e.target.closest("tbody tr");
+    if (!row) return;
+    if (link) e.preventDefault();
+    loadReadingRow(row, link ? link.dataset.chapter : null, link ? linkStartVerse(link) : null);
+  });
+
+  // "Today" (or "Next" for a checklist) and startup: load that day's readings.
+  function jumpToToday() {
+    if (!current) return false;
+    const place = todaysPlace(current.sched);
+    if (!place) return false;
+    setActiveGroup(place.g);
+    const row = rowElement(place);
+    if (!row) return false;
+    // In a long list, bring the day into view in the schedule panel.
+    requestAnimationFrame(() => row.scrollIntoView({ block: "nearest" }));
+    todayStamp = { day: dayKey(new Date()), id: current.id, place: { g: place.g, r: place.r } };
+    return loadReadingRow(row);
+  }
+
+  // ---- ticking checkboxes (saved in the schedule file) ----
+  const canTick = () => !!appApi() && current && current.id !== BUILT_IN_SCHEDULE;
+
+  // Update the loaded schedule after checkboxes were saved: edits are
+  // { row, cell, ordinal, checked }, lines the saved lines ({ lineNo: text }).
+  function applySavedChecks(edits, lines, mtime) {
+    for (const { row, cell, ordinal, checked } of edits) {
+      const part = (row.cells[cell] || []).find(p => p.type === "check" && p.ordinal === ordinal);
+      if (part) part.checked = checked;
+      const k = row.checks.find(x => x.cell === cell && x.ordinal === ordinal);
+      if (k) k.checked = checked;
+      const dayCheck = row.checks.find(x => x.isDay);
+      row.done = dayCheck ? dayCheck.checked : row.checks.length ? row.checks.every(x => x.checked) : null;
+    }
+    for (const [lineNo, text] of Object.entries(lines)) {
+      current.sched.lines[Number(lineNo) - 1] = text;
+      const row = current.sched.rows.find(x => x.row.line === Number(lineNo));
+      if (row) row.row.raw = text;
+    }
+    current.mtime = mtime;
+    statusMessage = null;
+  }
+
+  async function saveChecks(edits) {
+    const api = appApi();
+    let res;
+    try {
+      res = edits.length === 1
+        ? await api.set_schedule_check(current.id, edits[0].row.line, edits[0].cell, edits[0].ordinal, edits[0].row.raw, edits[0].checked)
+        : await api.set_schedule_checks(current.id, edits.map(x => [x.row.line, x.cell, x.ordinal, x.row.raw, x.checked]));
+    } catch (err) {
+      res = { ok: false, error: `Couldn't save the checkmarks (${err && err.message || err}).` };
+    }
+    if (res && res.ok) {
+      applySavedChecks(edits, res.lines || { [edits[0].row.line]: res.line }, res.mtime);
+      return true;
+    }
+    statusMessage = { text: (res && res.error) || "Couldn't save the checkmarks.", error: true };
+    if (res && res.conflict) await reloadSchedule(true);
+    else renderScheduleStatus();
+    return false;
+  }
+
+  // One box: only its row (and the progress) change on screen.
+  scheduleTables.addEventListener("change", async (e) => {
+    const box = e.target.closest(".schedule-check");
+    if (!box) return;
+    const tr = box.closest("tr");
+    const gi = Number(tr.dataset.g);
+    const row = current.sched.groups[gi].rows[Number(tr.dataset.r)];
+    const checked = box.checked;
+    if (!canTick()) { box.checked = !checked; return; }
+    box.disabled = true;
+    const ok = await saveChecks([{ row, cell: Number(box.dataset.cell), ordinal: Number(box.dataset.ordinal), checked }]);
+    if (!box.isConnected) return;   // the schedule was reloaded
+    box.disabled = false;
+    if (!ok) { box.checked = !checked; return; }
+    box.closest(".reading-item")?.classList.toggle("reading-done", checked);
+    tr.classList.toggle("row-done", row.done === true);
+    const g = current.sched.groups[gi];
+    weekGrid.querySelector(`.week-btn[data-group="${gi}"]`)?.classList.toggle("done", g.rows.length > 0 && g.rows.every(r => r.done === true));
+    renderScheduleStatus();
+  });
+
+  // ---- marking a whole section or the whole plan ----
+  // Buttons ask once more before changing more than one day: "Clear all 260? Click again".
+  function armedClick(btn) {
+    if (btn.dataset.armed) return true;
+    btn.dataset.armed = "1";
+    btn.dataset.label = btn.textContent;
+    btn.textContent = btn.dataset.confirm;
+    btn.classList.add("armed");
+    setTimeout(() => {
+      if (!btn.isConnected || !btn.dataset.armed) return;
+      delete btn.dataset.armed;
+      btn.textContent = btn.dataset.label;
+      btn.classList.remove("armed");
+    }, 4000);
+    return false;
+  }
+
+  async function markRows(rows, checked) {
+    const edits = [];
+    for (const row of rows) {
+      for (const k of row.checks) if (k.checked !== checked) edits.push({ row, cell: k.cell, ordinal: k.ordinal, checked });
+    }
+    if (!edits.length) return;
+    if (await saveChecks(edits)) renderSchedule();
+  }
+
+  function bulkButtons(scope) {
+    const wrap = document.createElement("span");
+    wrap.className = "bulk-actions";
+    const rows = scope === "plan" ? current.sched.rows.map(x => x.row) : current.sched.groups[scope].rows;
+    const days = rows.filter(r => r.checks.length).length;
+    const what = scope === "plan" ? "the whole plan" : "this section";
+    for (const [label, checked] of [["Mark all read", true], ["Clear", false]]) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "link-btn";
+      b.textContent = label;
+      b.dataset.bulk = checked ? "check" : "clear";
+      b.dataset.scope = scope;
+      b.dataset.confirm = `${checked ? "Mark" : "Clear"} ${days.toLocaleString()} day${days === 1 ? "" : "s"}? Click again`;
+      b.title = `${checked ? "Tick every checkbox in" : "Clear every checkbox in"} ${what}`;
+      wrap.appendChild(b);
+    }
+    return wrap;
+  }
+
+  async function onBulkClick(e) {
+    const btn = e.target.closest("[data-bulk]");
+    if (!btn || !canTick()) return;
+    e.stopPropagation();
+    const scope = btn.dataset.scope;
+    const rows = scope === "plan" ? current.sched.rows.map(x => x.row) : current.sched.groups[Number(scope)].rows;
+    if (rows.filter(r => r.checks.length).length > 1 && !armedClick(btn)) return;
+    btn.disabled = true;
+    await markRows(rows, btn.dataset.bulk === "check");
+  }
+  scheduleTables.addEventListener("click", onBulkClick, true);
+  scheduleStatus.addEventListener("click", onBulkClick);
+
+  // ---- choosing and loading schedules ----
+  let scheduleList = [{ id: BUILT_IN_SCHEDULE, name: BUILT_IN_NAME }];
+
+  // The dropdown groups schedules by how they pick the day, alphabetically by name within
+  // each group; the built-in schedule is always first.
+  const SCHEDULE_GROUPS = [
+    { label: "Follows the calendar", modes: ["weekly", "monthly", "yearly"] },
+    { label: "Seasons and set dates", modes: ["dated"] },
+    { label: "Checklists (at your own pace)", modes: ["checklist"] },
+  ];
+  function scheduleKind(s) {
+    if (s.id === BUILT_IN_SCHEDULE) return "weekly";
+    return effectiveMode(normalizeMode(s.mode) || "", !!s.hasStart, !!s.hasChecks);
+  }
+
+  function refreshScheduleSelect() {
+    const items = scheduleList.slice();
+    if (current && !items.some(s => s.id === current.id)) items.push({ id: current.id, name: current.name, mode: current.sched.mode });
+    const byName = (a, b) => (a.id === BUILT_IN_SCHEDULE ? -1 : b.id === BUILT_IN_SCHEDULE ? 1
+      : a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+    const nodes = SCHEDULE_GROUPS.map(g => {
+      const members = items.filter(s => g.modes.includes(scheduleKind(s))).sort(byName);
+      if (!members.length) return null;
+      const group = document.createElement("optgroup");
+      group.label = g.label;
+      members.forEach(s => group.appendChild(new Option(s.name, s.id)));
+      return group;
+    }).filter(Boolean);
+    scheduleSelect.replaceChildren(...nodes);
+    scheduleSelect.value = current ? current.id : BUILT_IN_SCHEDULE;
+    scheduleSelect.hidden = scheduleSelect.options.length <= 1;
+  }
+
+  // Parse and show a schedule. keepPlace: same schedule re-read (keep the week shown and
+  // the loaded row); otherwise start at its first week.
+  function showSchedule(id, name, text, mtime, isNew = true) {
+    const sched = parseSchedule(text, name);
+    if (isNew) { activeGroup = 0; readingPlace = null; }
+    current = { id, name: sched.name, sched, mtime };
+    renderSchedule();
+    refreshScheduleSelect();
+  }
+
+  function showBuiltInSchedule() {
+    statusMessage = null;
+    showSchedule(BUILT_IN_SCHEDULE, BUILT_IN_NAME, builtInScheduleText, null);
+    current.name = BUILT_IN_NAME;
+    refreshScheduleSelect();
+  }
+
+  async function loadScheduleFile(id) {
+    const api = appApi();
+    let res;
+    try { res = api ? await api.load_schedule(id) : null; } catch (err) { res = { ok: false, error: String(err && err.message || err) }; }
+    return res && res.ok ? res : { ok: false, error: (res && res.error) || "The schedule couldn't be read." };
+  }
+
+  async function selectSchedule(id, { jump = true } = {}) {
+    if (id === BUILT_IN_SCHEDULE) {
+      showBuiltInSchedule();
+    } else {
+      const res = await loadScheduleFile(id);
+      if (!res.ok) {
+        showBuiltInSchedule();
+        statusMessage = { text: res.error, error: true };
+        renderScheduleStatus();
+        storageSet(STORAGE_SCHEDULE, BUILT_IN_SCHEDULE);
+        if (jump) jumpToToday();
+        return false;
+      }
+      statusMessage = null;
+      showSchedule(id, res.fileName.replace(/\.md$/i, ""), res.text, res.mtime);
+    }
+    storageSet(STORAGE_SCHEDULE, id);
+    if (jump) jumpToToday();
+    return true;
+  }
+
+  scheduleSelect.addEventListener("change", () => selectSchedule(scheduleSelect.value));
+
+  async function refreshScheduleList() {
+    const api = appApi();
+    if (!api) return;
+    try {
+      const list = await api.list_schedules();
+      if (Array.isArray(list)) scheduleList = [{ id: BUILT_IN_SCHEDULE, name: BUILT_IN_NAME }, ...list];
+    } catch { /* keep the list we have */ }
+    refreshScheduleSelect();
+  }
+
+  // The file was changed outside the app (or a save found it changed): read it again,
+  // keeping the week shown and the loaded row.
+  async function reloadSchedule(force = false) {
+    if (!current || current.id === BUILT_IN_SCHEDULE) return;
+    const api = appApi();
+    if (!api) return;
+    let mtime = null;
+    try { mtime = await api.schedule_mtime(current.id); } catch { /* treat as missing */ }
+    if (mtime === null || mtime === undefined) {
+      const name = current.name;
+      showBuiltInSchedule();
+      storageSet(STORAGE_SCHEDULE, BUILT_IN_SCHEDULE);
+      statusMessage = { text: `“${name}” is no longer in the schedules folder.`, error: true };
+      renderScheduleStatus();
+      return;
+    }
+    if (!force && mtime === current.mtime) return;
+    const res = await loadScheduleFile(current.id);
+    if (res.ok) showSchedule(current.id, res.fileName.replace(/\.md$/i, ""), res.text, res.mtime, false);
+  }
+
+  // ---- a new day while the app is open ----
+  // When the date changes, a reader still on the day "Today" (or "Next") last showed moves
+  // on to the new day: when they come back to the window, or after 10 minutes of not
+  // using it (so nobody is moved while reading). Anyone elsewhere stays where they are.
+  const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  let todayStamp = null;      // { day, id, place } of the last jump to today
+  let lastActivity = Date.now();
+  ["pointerdown", "keydown", "wheel"].forEach(t => window.addEventListener(t, () => { lastActivity = Date.now(); }, { passive: true, capture: true }));
+  function checkNewDay() {
+    if (!todayStamp || !current || dayKey(new Date()) === todayStamp.day) return;
+    const stillThere = current.id === todayStamp.id && loadMode === "reading" && readingPlace &&
+      readingPlace.g === todayStamp.place.g && readingPlace.r === todayStamp.place.r;
+    todayStamp.day = dayKey(new Date());
+    renderScheduleStatus();   // "Day N of M" moves on too
+    const next = todaysPlace(current.sched);
+    if (stillThere && next && (next.g !== readingPlace.g || next.r !== readingPlace.r)) jumpToToday();
+  }
+  setInterval(() => { if (Date.now() - lastActivity > 10 * 60 * 1000) checkNewDay(); }, 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkNewDay(); });
+
+  // Coming back to the window: pick up changes made outside the app (schedule files,
+  // theme files, the keys file) and a new day.
+  window.addEventListener("focus", () => {
+    refreshScheduleList();
+    reloadSchedule();
+    refreshOnlineKeys();
+    refreshLocalBiblesOnFocus();
+    if (appApi()) onAppReady();   // re-reads the themes folder
+    checkNewDay();
+  });
+
+  // Startup: the built-in schedule is there at once; a chosen custom schedule is loaded as
+  // soon as the desktop app is ready, and today's reading waits for it.
+  let readingStarted = false;
+  function startReading() {
+    if (readingStarted) return;
+    readingStarted = true;
+    if (!jumpToToday()) {
+      const firstBook = booksData.at(0);
+      if (firstBook && firstBook.chapters.length) navigateToChapter(firstBook.id, firstBook.chapters.at(0).id);
+    }
+  }
+  async function onSchedulesReady() {
+    await refreshScheduleList();
+    const saved = storageGet(STORAGE_SCHEDULE);
+    const lateStart = readingStarted;   // the app was slow to answer and the built-in day loaded
+    if (saved && saved !== BUILT_IN_SCHEDULE && current.id !== saved) {
+      const ok = await selectSchedule(saved, { jump: false });
+      if (ok && lateStart) jumpToToday();
+    }
+    startReading();
+  }
+
+  // --- INITIALIZE ON LOAD ---
+  buildSettingsUI();
+  applySettings();
+  document.getElementById("theme-css")?.addEventListener("load", refreshSettingsUI);
+  {
+    // An online translation needs the desktop app (and a key, checked once it's ready).
+    const preferred = translationById(preferredTranslation);
+    setTranslation(preferred && translationAvailable(preferred) ? preferred.id : translationsData[0].id, false, false);
+    refreshKeyRows();
+  }
+  setTestament("OT");
+  showBuiltInSchedule();
+  {
+    // A custom schedule chosen last time is read by the desktop app; today's reading waits
+    // for it (briefly: if the app doesn't answer, the built-in schedule is used).
+    const saved = storageGet(STORAGE_SCHEDULE);
+    if (inDesktopApp && saved && saved !== BUILT_IN_SCHEDULE) setTimeout(startReading, 4000);
+    else startReading();
+    if (appApi()) setTimeout(onSchedulesReady); else window.addEventListener("pywebviewready", onSchedulesReady);
+  }
+</script>
+</body>
+</html>

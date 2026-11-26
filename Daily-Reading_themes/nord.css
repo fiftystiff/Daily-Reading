@@ -1,0 +1,47 @@
+/*
+ * Theme: Nord Frost
+ */
+:root {
+  /* Colors */
+  --bg-main: #2e3440;
+  --bg-book-nav: #242933;
+  --bg-chapter-nav: #292e39;
+  --bg-aside: #242933;
+  --bg-toggle-bar: #3b4252;
+  --bg-tile: #3b4252;
+  --bg-tile-hover: #4c566a;
+  --bg-book-hover: #353c4a;
+  --bg-table-th: #3b4252;
+  --bg-table-hover: #343b48;
+  --bg-row-selected: #3f4e63;
+  --border-main: #3b4252;
+  --border-book-nav: #343b48;
+  --border-toggle: #434c5e;
+  --border-table: #3b4252;
+  --border-row-selected: #81a1c1;
+  --text-main: #eceff4;
+  --text-strong: #ffffff;
+  --text-muted: #d8dee9;
+  --text-subtle: #aeb8c9;
+  --text-row-selected: #ffffff;
+  --accent: #88c0d0;
+  --accent-hover: #9fd0de;
+  --accent-text: #1c2026;
+  --link-color: #8fbcbb;
+  --link-underline: #5e81ac;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #4c566a;
+  --scrollbar-thumb-hover: #616d85;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: "Segoe UI", system-ui, sans-serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: "Segoe UI Light", "Segoe UI", sans-serif;
+
+  /* Text layout overrides (optional) */
+  --line-height: 1.8;
+}

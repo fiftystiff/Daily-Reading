@@ -1,0 +1,44 @@
+/*
+ * Theme: Twilight Violet
+ */
+:root {
+  /* Colors */
+  --bg-main: #1b1825;
+  --bg-book-nav: #221e2f;
+  --bg-chapter-nav: #1f1b2a;
+  --bg-aside: #1f1b2a;
+  --bg-toggle-bar: #322d3f;
+  --bg-tile: #2c2839;
+  --bg-tile-hover: #3b3748;
+  --bg-book-hover: #322d3f;
+  --bg-table-th: #2e2a3b;
+  --bg-table-hover: #201c2c;
+  --bg-row-selected: #3a3252;
+  --border-main: #33303e;
+  --border-book-nav: #393546;
+  --border-toggle: #454152;
+  --border-table: #33303e;
+  --border-row-selected: #675895;
+  --text-main: #e4def2;
+  --text-strong: #f4f2fa;
+  --text-muted: #a8a3b4;
+  --text-subtle: #908b9c;
+  --text-row-selected: #f2eef8;
+  --accent: #a68cf0;
+  --accent-hover: #b39df2;
+  --accent-text: #100e16;
+  --link-color: #b29cf0;
+  --link-underline: #675895;
+
+  /* Scrollbars & native controls */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #413d4e;
+  --scrollbar-thumb-hover: #5c586a;
+  --color-scheme: dark;
+
+  /* Fonts */
+  --font-text: Constantia, Georgia, serif;
+  --font-ui: "Segoe UI", system-ui, sans-serif;
+  --font-verse-num: "Segoe UI", system-ui, sans-serif;
+  --font-heading: Constantia, Georgia, serif;
+}
